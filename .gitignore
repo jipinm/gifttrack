@@ -1,0 +1,47 @@
+# Root .gitignore for gifttrack
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# API project
+customer-management-api/vendor/
+customer-management-api/composer.lock
+customer-management-api/logs/*.log
+customer-management-api/logs/*.txt
+customer-management-api/cache/*
+!customer-management-api/cache/.gitkeep
+
+# Mobile project
+customer-management-mobile/node_modules/
+customer-management-mobile/.expo/
+customer-management-mobile/dist/
+customer-management-mobile/web-build/
+customer-management-mobile/expo-env.d.ts
+customer-management-mobile/ios/
+customer-management-mobile/android/
+customer-management-mobile/npm-debug.*
+customer-management-mobile/yarn-debug.*
+customer-management-mobile/yarn-error.*
+
+# Common/General
+node_modules/
+vendor/
+.vscode/
+.idea/
+*.sublime-*
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.temp
+*.cache
+*.pem
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+*.tsbuildinfo

@@ -1,0 +1,197 @@
+# ==================================================
+# Customer Management API - URL Rewriting & Security
+# ==================================================
+
+# Disable automatic directory slash redirects for API routes
+DirectorySlash Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /gifttrack/customer-management-api/
+    
+    # ==================================================
+    # Pass Authorization Header
+    # ==================================================
+    # Apache strips Authorization header by default
+    # This rule passes it to PHP scripts
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    
+    # ==================================================
+    # Handle Preflight OPTIONS Requests
+    # ==================================================
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+    
+    # ==================================================
+    # Test Route (for URL rewriting verification)
+    # ==================================================
+    RewriteRule ^test_url_rewriting/?$ test_url_rewriting.php [L,QSA]
+    
+    # ==================================================
+    # Health Check Route
+    # ==================================================
+    RewriteRule ^api/health/?$ api/health.php [L,QSA]
+    
+    # ==================================================
+    # Authentication Routes
+    # ==================================================
+    RewriteRule ^api/auth/login/?$ api/auth/login.php [L,QSA]
+    RewriteRule ^api/auth/logout/?$ api/auth/logout.php [L,QSA]
+    RewriteRule ^api/auth/verify/?$ api/auth/verify.php [L,QSA]
+    RewriteRule ^api/auth/change-password/?$ api/auth/change-password.php [L,QSA]
+    
+    # ==================================================
+    # Customer Routes (RESTful)
+    # ==================================================
+    # GET /api/customers/{customerId}/events - REMOVED (events are standalone now)
+    
+    # GET/POST /api/customers
+    RewriteRule ^api/customers/?$ api/customers/index.php [L,QSA]
+    
+    # /api/customers/show?id={id} (direct file, query param based)
+    RewriteRule ^api/customers/show/?$ api/customers/show.php [L,QSA]
+    
+    # GET/PUT/DELETE /api/customers/{id} (path-based fallback)
+    RewriteRule ^api/customers/([a-f0-9\-]+)/?$ api/customers/show.php?id=$1 [L,QSA]
+    
+    # ==================================================
+    # Event Routes (Standalone - managed by Super Admin)
+    # ==================================================
+    # GET/POST /api/events
+    RewriteRule ^api/events/?$ api/events/index.php [L,QSA]
+    
+    # GET /api/events/show?id={id}
+    RewriteRule ^api/events/show/?$ api/events/show.php [L,QSA]
+    
+    # PUT /api/events/update?id={id}
+    RewriteRule ^api/events/update/?$ api/events/update.php [L,QSA]
+    
+    # DELETE /api/events/delete?id={id}
+    RewriteRule ^api/events/delete/?$ api/events/delete.php [L,QSA]
+    
+    # GET/POST /api/events/customers?event_id={id}
+    RewriteRule ^api/events/customers/?$ api/events/customers.php [L,QSA]
+    
+    # PUT /api/events/update-attachment?id={id}
+    RewriteRule ^api/events/update-attachment/?$ api/events/update-attachment.php [L,QSA]
+    
+    # DELETE /api/events/detach-customer?id={id}
+    RewriteRule ^api/events/detach-customer/?$ api/events/detach-customer.php [L,QSA]
+    
+    # ==================================================
+    # Gift Routes
+    # ==================================================
+    # GET /api/gifts/customer-gifts?customer_id={id}
+    RewriteRule ^api/gifts/customer-gifts/?$ api/gifts/customer-gifts.php [L,QSA]
+    
+    # POST /api/gifts (create)
+    RewriteRule ^api/gifts/?$ api/gifts/create.php [L,QSA]
+    
+    # PUT /api/gifts/update?id={id}
+    RewriteRule ^api/gifts/update/?$ api/gifts/update.php [L,QSA]
+    
+    # DELETE /api/gifts/delete?id={id}
+    RewriteRule ^api/gifts/delete/?$ api/gifts/delete.php [L,QSA]
+    
+    # Legacy path-based routes (fallback)
+    RewriteRule ^api/gifts/([a-f0-9\-]+)/?$ api/gifts/update.php?id=$1 [L,QSA]
+    
+    # ==================================================
+    # Admin Routes (Super Admin Only)
+    # ==================================================
+    # GET /api/admins or /api/admins/index
+    RewriteRule ^api/admins/?$ api/admins/index.php [L,QSA]
+    RewriteRule ^api/admins/index/?$ api/admins/index.php [L,QSA]
+    
+    # POST /api/admins or /api/admins/create
+    RewriteRule ^api/admins/create/?$ api/admins/create.php [L,QSA]
+    
+    # GET /api/admins/show?id={id}
+    RewriteRule ^api/admins/show/?$ api/admins/show.php [L,QSA]
+    
+    # GET /api/admins/{id}
+    RewriteRule ^api/admins/([a-f0-9\-]+)/?$ api/admins/show.php?id=$1 [L,QSA]
+    
+    # PUT /api/admins/update?id={id}
+    RewriteRule ^api/admins/update/?$ api/admins/update.php [L,QSA]
+    
+    # PUT /api/admins/{id}/update
+    RewriteRule ^api/admins/([a-f0-9\-]+)/update/?$ api/admins/update.php?id=$1 [L,QSA]
+    
+    # DELETE /api/admins/delete?id={id}
+    RewriteRule ^api/admins/delete/?$ api/admins/delete.php [L,QSA]
+    
+    # DELETE /api/admins/{id}/delete
+    RewriteRule ^api/admins/([a-f0-9\-]+)/delete/?$ api/admins/delete.php?id=$1 [L,QSA]
+    
+    # ==================================================
+    # Master Data Routes
+    # ==================================================
+    RewriteRule ^api/master/states/?$ api/master/states.php [L,QSA]
+    RewriteRule ^api/master/districts/?$ api/master/districts.php [L,QSA]
+    RewriteRule ^api/master/cities/?$ api/master/cities.php [L,QSA]
+    RewriteRule ^api/master/event-types/?$ api/master/event-types.php [L,QSA]
+    RewriteRule ^api/master/gift-types/?$ api/master/gift-types.php [L,QSA]
+    RewriteRule ^api/master/invitation-status/?$ api/master/invitation-status.php [L,QSA]
+    RewriteRule ^api/master/care-of-options/?$ api/master/care-of-options.php [L,QSA]
+    
+    # ==================================================
+    # Fallback: If file doesn't exist, let PHP handle it
+    # ==================================================
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.*)$ api/$1 [L]
+    
+    # ==================================================
+    # Block access to sensitive files
+    # ==================================================
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^vendor - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^\.htaccess$ - [F,L]
+    RewriteRule \.sql$ - [F,L]
+</IfModule>
+
+# ==================================================
+# Security & Performance Settings
+# ==================================================
+
+# Disable directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# CORS Headers (Development - allow all origins)
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "3600"
+    
+    # Security headers
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache control for API responses
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/json "access plus 0 seconds"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# Deny access to specific file types
+<FilesMatch "(^\.htaccess|^\.env|composer\.json|composer\.lock|\.sql|\.md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

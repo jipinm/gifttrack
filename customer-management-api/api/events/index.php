@@ -1,0 +1,135 @@
+<?php
+/**
+ * Events List & Create Endpoint
+ * GET /api/events - List all events (all authenticated users)
+ * POST /api/events - Create new event (Super Admin only)
+ */
+
+require_once __DIR__ . '/../../bootstrap.php';
+require_once __DIR__ . '/../../middleware/auth.php';
+require_once __DIR__ . '/../../models/Event.php';
+require_once __DIR__ . '/../../utils/Paginator.php';
+
+global $authUser;
+
+$method = $_SERVER['REQUEST_METHOD'];
+
+if ($method === 'GET') {
+    // ==========================================
+    // GET: List all events
+    // All authenticated users can view events
+    // ==========================================
+    
+    $eventModel = new Event();
+    
+    // Build filters
+    $filters = [];
+    
+    if (isset($_GET['search']) && !empty(trim($_GET['search']))) {
+        $filters['search'] = trim($_GET['search']);
+    }
+    
+    if (isset($_GET['eventTypeId']) && !empty($_GET['eventTypeId'])) {
+        $filters['eventTypeId'] = $_GET['eventTypeId'];
+    }
+    
+    if (isset($_GET['eventCategory']) && !empty($_GET['eventCategory'])) {
+        $filters['eventCategory'] = $_GET['eventCategory'];
+    }
+    
+    if (isset($_GET['dateFrom']) && !empty($_GET['dateFrom'])) {
+        $filters['dateFrom'] = $_GET['dateFrom'];
+    }
+    
+    if (isset($_GET['dateTo']) && !empty($_GET['dateTo'])) {
+        $filters['dateTo'] = $_GET['dateTo'];
+    }
+    
+    // Check for pagination
+    $paginator = null;
+    if (isset($_GET['page']) || isset($_GET['perPage'])) {
+        require_once __DIR__ . '/../../utils/Paginator.php';
+        $paginator = paginate();
+    }
+    
+    $result = $eventModel->getAll($filters, $paginator);
+    
+    if ($paginator) {
+        $events = $paginator->getData();
+        $formattedEvents = array_map(function($event) use ($eventModel) {
+            return $eventModel->formatForResponse($event);
+        }, $events);
+        
+        Response::success([
+            'events' => $formattedEvents,
+            'pagination' => $paginator->getMeta()
+        ]);
+    } else {
+        $formattedEvents = array_map(function($event) use ($eventModel) {
+            return $eventModel->formatForResponse($event);
+        }, $result);
+        
+        Response::success([
+            'events' => $formattedEvents,
+            'count' => count($formattedEvents)
+        ]);
+    }
+
+} elseif ($method === 'POST') {
+    // ==========================================
+    // POST: Create new event (Super Admin only)
+    // ==========================================
+    
+    require_once __DIR__ . '/../../middleware/role.php';
+    requireSuperAdmin();
+    
+    $data = json_decode(file_get_contents('php://input'), true);
+    
+    if (!$data) {
+        Response::validationError(['message' => 'Invalid JSON data']);
+        exit;
+    }
+    
+    // Validate required fields
+    $validator = new Validator();
+    $validator->field('name', $data['name'] ?? '')->required()->maxLength(255);
+    $validator->field('eventDate', $data['eventDate'] ?? '')->required()->date();
+    $validator->field('eventTypeId', $data['eventTypeId'] ?? '')->required();
+    
+    // Validate event category
+    $validCategories = ['self_event', 'customer_event'];
+    $eventCategory = $data['eventCategory'] ?? 'self_event';
+    if (!in_array($eventCategory, $validCategories)) {
+        Response::validationError(['eventCategory' => 'Must be self_event or customer_event']);
+        exit;
+    }
+    
+    if ($validator->fails()) {
+        Response::validationError($validator->getErrors());
+        exit;
+    }
+    
+    // Sanitize inputs
+    $eventModel = new Event();
+    $eventData = [
+        'name' => Validator::sanitize($data['name']),
+        'eventDate' => $data['eventDate'],
+        'eventTypeId' => (int)$data['eventTypeId'],
+        'eventCategory' => $eventCategory,
+        'notes' => isset($data['notes']) ? Validator::sanitize($data['notes']) : null,
+        'createdBy' => $authUser['id']
+    ];
+    
+    $eventId = $eventModel->create($eventData);
+    
+    if (!$eventId) {
+        Response::serverError('Failed to create event');
+        exit;
+    }
+    
+    $event = $eventModel->getById($eventId);
+    Response::success($eventModel->formatForResponse($event), 'Event created successfully', 201);
+
+} else {
+    Response::methodNotAllowed();
+}
