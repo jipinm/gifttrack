@@ -4,8 +4,8 @@
  * Uses Modal for better positioning and accessibility
  */
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { Text, Modal, Portal, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { Text, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
 import { useMasterData } from '../../context/MasterDataContext';
 import { colors, spacing, borderRadius, shadows, typography } from '../../styles/theme';
 import type { City } from '../../types';
@@ -140,12 +140,10 @@ export default function CityDropdown({
         </HelperText>
       )}
 
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={closeModal}
-          contentContainerStyle={styles.modalContent}
-        >
+      <Modal visible={modalVisible} onRequestClose={closeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{label}</Text>
             <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
@@ -163,7 +161,7 @@ export default function CityDropdown({
             />
           )}
 
-          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator>
+          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.optionsListContent}>
             {!required && selectedCity && (
               <TouchableOpacity style={styles.optionItem} onPress={handleClear}>
                 <Text style={styles.clearText}>Clear selection</Text>
@@ -201,8 +199,9 @@ export default function CityDropdown({
               ))
             )}
           </ScrollView>
-        </Modal>
-      </Portal>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -269,11 +268,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSize.sm,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContent: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
-    margin: spacing.lg,
+    width: '90%',
     maxHeight: SCREEN_HEIGHT * 0.7,
+    overflow: 'hidden',
     ...shadows.xl,
   },
   modalHeader: {
@@ -308,6 +314,9 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     maxHeight: SCREEN_HEIGHT * 0.5,
+  },
+  optionsListContent: {
+    paddingBottom: 20,
   },
   optionItem: {
     flexDirection: 'row',

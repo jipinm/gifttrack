@@ -196,6 +196,39 @@ export default function ProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Super Admin Settings - Only visible to Super Admins */}
+        {isSuperAdmin() && (
+          <Animated.View
+            style={[
+              styles.cardContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Super Admin Settings</Text>
+              <Divider style={styles.divider} />
+
+              <TouchableOpacity onPress={() => navigation.navigate('MasterDataCategories')}>
+                <List.Item
+                  title="Master Data Management"
+                  description="Manage event types, gift types, and more"
+                  left={(props) => (
+                    <List.Icon {...props} icon="database-cog" color={colors.warning} />
+                  )}
+                  right={(props) => (
+                    <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />
+                  )}
+                  titleStyle={styles.listTitle}
+                  descriptionStyle={styles.listDescription}
+                />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        )}
+
         {/* App Info */}
         <Animated.View
           style={[

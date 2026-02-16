@@ -3,7 +3,7 @@
  * Displays paginated list of standalone events
  * All users can view events. SuperAdmin can create/edit/delete.
  */
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { Text, FAB, ActivityIndicator, Chip, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { eventService } from '../../services/eventService';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, borderRadius, typography, shadows } from '../../styles/theme';
-import type { Event, EventFilters, PaginatedResponse } from '../../types';
+import type { Event, EventFilters, PaginatedResponse, PaginationMeta } from '../../types';
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
 
 type NavigationProp = NativeStackNavigationProp<EventStackParamList>;
@@ -38,7 +38,50 @@ export default function EventListScreen() {
   const [totalCount, setTotalCount] = useState(0);
   const [activeCategory, setActiveCategory] = useState<'all' | 'self_event' | 'customer_event'>('all');
 
-  const isFirstRender = useRef(true);
+  /**
+   * Normalise the API response into the shape the list code expects.
+   * The PHP API returns:  { events: Event[], pagination: { current_page, per_page, total, total_pages, … } }
+   * We need:              { data: Event[], meta: { currentPage, perPage, total, lastPage, from, to } }
+   */
+  const normalizeEventResponse = useCallback((raw: any): { data: Event[]; meta: PaginationMeta } | null => {
+    if (!raw) return null;
+
+    // Already in expected shape?
+    if (Array.isArray(raw.data) && raw.meta) {
+      return raw as { data: Event[]; meta: PaginationMeta };
+    }
+
+    // API shape: { events, pagination }
+    const events: Event[] = Array.isArray(raw.events) ? raw.events : (Array.isArray(raw) ? raw : []);
+    const pg = raw.pagination;
+
+    if (pg) {
+      return {
+        data: events,
+        meta: {
+          total: pg.total ?? 0,
+          perPage: pg.per_page ?? PAGE_SIZE,
+          currentPage: pg.current_page ?? 1,
+          lastPage: pg.total_pages ?? 1,
+          from: pg.from ?? 0,
+          to: pg.to ?? 0,
+        },
+      };
+    }
+
+    // Non-paginated: just { events, count }
+    return {
+      data: events,
+      meta: {
+        total: events.length,
+        perPage: PAGE_SIZE,
+        currentPage: 1,
+        lastPage: 1,
+        from: events.length > 0 ? 1 : 0,
+        to: events.length,
+      },
+    };
+  }, []);
 
   // Load events
   const loadEvents = useCallback(
@@ -56,19 +99,18 @@ export default function EventListScreen() {
         const response = await eventService.getAll(currentFilters);
 
         if (response.success && response.data) {
-          const paginatedData = response.data as PaginatedResponse<Event>;
-          if (paginatedData.data && paginatedData.meta) {
+          const normalized = normalizeEventResponse(response.data);
+          if (normalized && normalized.data.length >= 0) {
             if (append) {
-              setEvents((prev) => [...prev, ...paginatedData.data]);
+              setEvents((prev) => [...prev, ...normalized.data]);
             } else {
-              setEvents(paginatedData.data);
+              setEvents(normalized.data);
             }
-            setTotalCount(paginatedData.meta.total);
-            setHasMore(paginatedData.meta.currentPage < paginatedData.meta.lastPage);
+            setFilters((prev) => ({ ...prev, page: normalized.meta.currentPage }));
+            setTotalCount(normalized.meta.total);
+            setHasMore(normalized.meta.currentPage < normalized.meta.lastPage);
           } else {
-            // Non-paginated response
-            const data = response.data as unknown as Event[];
-            setEvents(append ? [...events, ...data] : Array.isArray(data) ? data : []);
+            if (!append) setEvents([]);
             setHasMore(false);
           }
         } else {
@@ -82,17 +124,62 @@ export default function EventListScreen() {
         setIsLoadingMore(false);
       }
     },
-    [filters, searchQuery, activeCategory, events]
+    [filters, searchQuery, activeCategory]
   );
 
-  // Reload on focus
+  // Reload on focus — inlined fetch to avoid stale loadEvents closure
   useFocusEffect(
     useCallback(() => {
-      if (isFirstRender.current) {
-        isFirstRender.current = false;
-      }
-      setFilters((prev) => ({ ...prev, page: 1 }));
-      loadEvents();
+      let cancelled = false;
+
+      const fetchEvents = async () => {
+        try {
+          setIsLoading(true);
+          setError(null);
+
+          const currentFilters: EventFilters = {
+            page: 1,
+            perPage: PAGE_SIZE,
+            search: searchQuery || undefined,
+            eventCategory: activeCategory !== 'all' ? activeCategory : undefined,
+          };
+
+          const response = await eventService.getAll(currentFilters);
+
+          if (cancelled) return;
+
+          if (response.success && response.data) {
+            const normalized = normalizeEventResponse(response.data);
+            if (normalized && normalized.data.length >= 0) {
+              setEvents(normalized.data);
+              setTotalCount(normalized.meta.total);
+              setHasMore(normalized.meta.currentPage < normalized.meta.lastPage);
+              setFilters((prev) => ({ ...prev, page: 1 }));
+            } else {
+              setEvents([]);
+              setHasMore(false);
+            }
+          } else {
+            setError(response.message || 'Failed to load events');
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+          }
+        } finally {
+          if (!cancelled) {
+            setIsLoading(false);
+            setIsRefreshing(false);
+            setIsLoadingMore(false);
+          }
+        }
+      };
+
+      fetchEvents();
+
+      return () => {
+        cancelled = true;
+      };
     }, [searchQuery, activeCategory])
   );
 
@@ -124,8 +211,8 @@ export default function EventListScreen() {
   };
 
   // Format currency
-  const formatCurrency = (value: number): string => {
-    return `₹${value.toLocaleString('en-IN')}`;
+  const formatCurrency = (value?: number): string => {
+    return `₹${(value ?? 0).toLocaleString('en-IN')}`;
   };
 
   // Render event card
@@ -158,11 +245,11 @@ export default function EventListScreen() {
             </View>
             <View style={styles.eventStat}>
               <Text style={styles.statLabel}>Customers</Text>
-              <Text style={styles.statValue}>{item.customerCount}</Text>
+              <Text style={styles.statValue}>{item.customerCount ?? 0}</Text>
             </View>
             <View style={styles.eventStat}>
               <Text style={styles.statLabel}>Gifts</Text>
-              <Text style={styles.statValue}>{item.giftCount}</Text>
+              <Text style={styles.statValue}>{item.giftCount ?? 0}</Text>
             </View>
             <View style={styles.eventStat}>
               <Text style={styles.statLabel}>Value</Text>

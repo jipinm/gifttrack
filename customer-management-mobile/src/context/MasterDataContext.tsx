@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { masterDataService } from '../services/masterDataService';
 import { useAuth } from './AuthContext';
 import { STORAGE_KEYS, CACHE_CONFIG } from '../config/env';
-import type { MasterData, MasterDataContextType, District, City } from '../types';
+import type { MasterData, MasterDataContextType, MasterDataCategory, District, City } from '../types';
 
 const MasterDataContext = createContext<MasterDataContextType | undefined>(undefined);
 
@@ -37,6 +37,23 @@ export function MasterDataProvider({ children }: MasterDataProviderProps) {
   }, [isAuthenticated]);
 
   /**
+   * Validate that cached data has all required keys
+   */
+  const isValidMasterData = (data: any): data is MasterData => {
+    return (
+      data &&
+      typeof data === 'object' &&
+      Array.isArray(data.states) &&
+      Array.isArray(data.districts) &&
+      Array.isArray(data.cities) &&
+      Array.isArray(data.eventTypes) &&
+      Array.isArray(data.giftTypes) &&
+      Array.isArray(data.invitationStatus) &&
+      Array.isArray(data.careOfOptions)
+    );
+  };
+
+  /**
    * Load master data from AsyncStorage cache
    */
   const loadFromCache = async () => {
@@ -46,11 +63,14 @@ export function MasterDataProvider({ children }: MasterDataProviderProps) {
         const { data, timestamp } = JSON.parse(cached);
         const now = Date.now();
 
-        // Check if cache is still valid (24 hours)
-        if (now - timestamp < CACHE_CONFIG.MASTER_DATA_TTL) {
+        // Check if cache is still valid (24 hours) AND has all required keys
+        if (now - timestamp < CACHE_CONFIG.MASTER_DATA_TTL && isValidMasterData(data)) {
           setMasterData(data);
           return;
         }
+
+        // Cache is stale or incomplete, clear it
+        await AsyncStorage.removeItem(STORAGE_KEYS.MASTER_DATA_CACHE);
       }
 
       // Cache is invalid or doesn't exist, load from API
@@ -119,6 +139,17 @@ export function MasterDataProvider({ children }: MasterDataProviderProps) {
     return masterData.cities.filter((city) => city.district_id === districtId);
   };
 
+  /**
+   * Get the default item ID for a master data category
+   */
+  const getDefaultId = (category: MasterDataCategory): number | null => {
+    if (!masterData) return null;
+    const items = masterData[category];
+    if (!items) return null;
+    const defaultItem = items.find((item) => item.isDefault);
+    return defaultItem ? defaultItem.id : null;
+  };
+
   const value: MasterDataContextType = {
     masterData,
     isLoading,
@@ -127,6 +158,7 @@ export function MasterDataProvider({ children }: MasterDataProviderProps) {
     refreshMasterData,
     getDistrictsByState,
     getCitiesByDistrict,
+    getDefaultId,
   };
 
   return <MasterDataContext.Provider value={value}>{children}</MasterDataContext.Provider>;
@@ -141,6 +173,7 @@ const defaultMasterDataContext: MasterDataContextType = {
   refreshMasterData: async () => {},
   getDistrictsByState: () => [],
   getCitiesByDistrict: () => [],
+  getDefaultId: () => null,
 };
 
 export function useMasterData(): MasterDataContextType {

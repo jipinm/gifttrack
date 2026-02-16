@@ -92,9 +92,11 @@ if ($method === 'GET') {
     
     // Validate required fields
     $validator = new Validator();
-    $validator->field('name', $data['name'] ?? '')->required()->maxLength(255);
-    $validator->field('eventDate', $data['eventDate'] ?? '')->required()->date();
-    $validator->field('eventTypeId', $data['eventTypeId'] ?? '')->required();
+    $validator->required('name', $data['name'] ?? '', 'Event name')
+             ->maxLength('name', $data['name'] ?? '', 255, 'Event name');
+    $validator->required('eventDate', $data['eventDate'] ?? '', 'Event date')
+             ->date('eventDate', $data['eventDate'] ?? '');
+    $validator->required('eventTypeId', $data['eventTypeId'] ?? '', 'Event type');
     
     // Validate event category
     $validCategories = ['self_event', 'customer_event'];

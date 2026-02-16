@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "customer-mgmt-api-002",
-		"name": "Customer Management API - Production",
-		"description": "Complete API collection for Customer Management System with JWT authentication\n\nProduction URL: https://gift-track.myprojectdemo.live",
+		"_postman_id": "customer-mgmt-api-v3",
+		"name": "Customer Management API",
+		"description": "Complete API collection for Customer Management System (Gifts Track) with JWT authentication.\n\nProduction: https://gift-track.myprojectdemo.live\nLocal: http://192.168.1.2/gifttrack/customer-management-api\n\n## Quick Start\n1. Run **Login - Super Admin** to auto-set the token\n2. All subsequent requests use the token automatically\n3. IDs are auto-captured from list/create responses\n\n## Roles\n- **superadmin**: Full access to all resources\n- **admin**: Manages own customers, gifts; can view events",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {
@@ -21,7 +21,11 @@
 			"script": {
 				"type": "text/javascript",
 				"exec": [
-					""
+					"// Auto-refresh token if it's about to expire",
+					"const tokenExpiry = pm.collectionVariables.get('tokenExpiry');",
+					"if (tokenExpiry && Date.now() > parseInt(tokenExpiry) - 300000) {",
+					"    console.log('Token expiring soon, consider refreshing.');",
+					"}"
 				]
 			}
 		},
@@ -30,7 +34,10 @@
 			"script": {
 				"type": "text/javascript",
 				"exec": [
-					""
+					"// Log response time for all requests",
+					"if (pm.response.responseTime > 2000) {",
+					"    console.warn('Slow response: ' + pm.response.responseTime + 'ms');",
+					"}"
 				]
 			}
 		}
@@ -38,11 +45,16 @@
 	"variable": [
 		{
 			"key": "baseUrl",
-			"value": "https://gift-track.myprojectdemo.live",
+			"value": "http://192.168.1.2/gifttrack/customer-management-api",
 			"type": "string"
 		},
 		{
 			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "tokenExpiry",
 			"value": "",
 			"type": "string"
 		},
@@ -65,6 +77,26 @@
 			"key": "adminId",
 			"value": "",
 			"type": "string"
+		},
+		{
+			"key": "attachmentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "eventTypeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "giftTypeId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "careOfId",
+			"value": "",
+			"type": "string"
 		}
 	],
 	"item": [
@@ -72,21 +104,17 @@
 			"name": "Health & Status",
 			"item": [
 				{
-					"name": "Health Check",
+					"name": "API Info",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"API is healthy\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.status).to.be.oneOf(['ok', 'degraded']);",
-									"});",
-									"",
-									"pm.test(\"Database is connected\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.data.checks.database).to.eql('ok');",
+									"pm.test('API info returned', function () {",
+									"    pm.response.to.have.status(200);",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('version');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -94,27 +122,56 @@
 						}
 					],
 					"request": {
-						"auth": {
-							"type": "noauth"
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api",
+							"host": ["{{baseUrl}}"],
+							"path": ["api"]
 						},
+						"description": "Get API info including version, timestamp, and environment."
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('API is healthy', function () {",
+									"    pm.response.to.have.status(200);",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data.status).to.be.oneOf(['ok', 'degraded']);",
+									"});",
+									"",
+									"pm.test('Database is connected', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.data.checks.database).to.eql('ok');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
 						"method": "GET",
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/health",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"health"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "health"]
 						},
-						"description": "Check API health status including database connection"
+						"description": "Check API health status including database connection, PHP version, bootstrap, env config, and log writability."
 					},
 					"response": []
 				}
 			],
-			"description": "Health check and status endpoints"
+			"description": "Health check and status endpoints (no authentication required)"
 		},
 		{
 			"name": "Authentication",
@@ -126,20 +183,22 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response has token\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.token).to.exist;",
-									"    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+									"pm.test('Response has token', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data.token).to.exist;",
+									"    pm.collectionVariables.set('token', json.data.token);",
+									"    // Token expires in 24h",
+									"    pm.collectionVariables.set('tokenExpiry', String(Date.now() + 86400000));",
 									"});",
 									"",
-									"pm.test(\"User is superadmin\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.data.user.role).to.eql(\"superadmin\");",
+									"pm.test('User is superadmin', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.data.user.role).to.eql('superadmin');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -147,15 +206,10 @@
 						}
 					],
 					"request": {
-						"auth": {
-							"type": "noauth"
-						},
+						"auth": { "type": "noauth" },
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
@@ -163,16 +217,10 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
 						},
-						"description": "Login as super admin user"
+						"description": "Login as super admin. Token is auto-saved to collection variables.\n\nRate limited: 5 attempts per 5 minutes."
 					},
 					"response": []
 				},
@@ -183,15 +231,21 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response has token\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.token).to.exist;",
-									"    pm.collectionVariables.set(\"token\", jsonData.data.token);",
+									"pm.test('Response has token', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data.token).to.exist;",
+									"    pm.collectionVariables.set('token', json.data.token);",
+									"    pm.collectionVariables.set('tokenExpiry', String(Date.now() + 86400000));",
+									"});",
+									"",
+									"pm.test('User is admin', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.data.user.role).to.eql('admin');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -199,15 +253,10 @@
 						}
 					],
 					"request": {
-						"auth": {
-							"type": "noauth"
-						},
+						"auth": { "type": "noauth" },
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
@@ -215,16 +264,10 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
 						},
-						"description": "Login as regular admin user"
+						"description": "Login as regular admin. Token is auto-saved to collection variables.\n\nAdmin can only manage their own customers."
 					},
 					"response": []
 				},
@@ -235,14 +278,16 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Token is valid\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.user).to.exist;",
+									"pm.test('Token is valid', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data.user).to.exist;",
+									"    pm.expect(json.data.user).to.have.property('id');",
+									"    pm.expect(json.data.user).to.have.property('role');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -254,16 +299,45 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/verify",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"verify"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "verify"]
 						},
-						"description": "Verify JWT token validity"
+						"description": "Verify JWT token validity. Returns user info (id, mobileNumber, name, role)."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('New token received', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data.token).to.exist;",
+									"    pm.collectionVariables.set('token', json.data.token);",
+									"    pm.collectionVariables.set('tokenExpiry', String(Date.now() + 86400000));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "refresh"]
+						},
+						"description": "Refresh JWT token. Old token is blacklisted and a new one is issued. Token auto-saved."
 					},
 					"response": []
 				},
@@ -274,13 +348,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Password changed\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Password changed', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -290,10 +364,7 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
@@ -301,16 +372,10 @@
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/change-password",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"change-password"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "change-password"]
 						},
-						"description": "Change password for authenticated user"
+						"description": "Change password for the authenticated user.\n\nValidation:\n- currentPassword must match\n- newPassword min 6 chars, must differ from current\n- confirmPassword must match newPassword"
 					},
 					"response": []
 				},
@@ -321,14 +386,18 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Logout successful\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"});"
+									"pm.test('Logout successful', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"});",
+									"",
+									"// Clear token after logout",
+									"pm.collectionVariables.set('token', '');",
+									"pm.collectionVariables.set('tokenExpiry', '');"
 								],
 								"type": "text/javascript"
 							}
@@ -339,45 +408,40 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/logout",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"logout"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "logout"]
 						},
-						"description": "Logout current user and invalidate token"
+						"description": "Logout current user. Token is blacklisted and cleared from collection variables."
 					},
 					"response": []
 				}
 			],
-			"description": "Authentication endpoints for login, logout, password change, and token verification"
+			"description": "Authentication endpoints: login, logout, token verify/refresh, and password change.\n\nLogin is rate-limited to 5 attempts per 5 minutes."
 		},
 		{
 			"name": "Customers",
 			"item": [
 				{
-					"name": "Get All Customers",
+					"name": "List Customers",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response is array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
+									"pm.test('Response has customers array', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.be.an('array');",
 									"});",
 									"",
-									"// Save first customer ID for later use",
-									"if (pm.response.json().data.length > 0) {",
-									"    pm.collectionVariables.set(\"customerId\", pm.response.json().data[0].id);",
+									"// Auto-save first customer ID",
+									"var data = pm.response.json().data;",
+									"if (Array.isArray(data) && data.length > 0) {",
+									"    pm.collectionVariables.set('customerId', data[0].id);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -389,114 +453,136 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/customers",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
 						},
-						"description": "Get all customers with pagination"
+						"description": "Get all customers. Admin sees only own customers; superadmin sees all.\n\nSupports query params: search, districtId, cityId, page, perPage."
 					},
 					"response": []
 				},
 				{
-					"name": "Get All Customers - With Search",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/customers?search=john",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers"
-							],
-							"query": [
-								{
-									"key": "search",
-									"value": "john"
-								}
-							]
-						},
-						"description": "Search customers by name or mobile number"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Customers - Filter by Gift Status",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/customers?giftStatus=gifted",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers"
-							],
-							"query": [
-								{
-									"key": "giftStatus",
-									"value": "gifted"
-								}
-							]
-						},
-						"description": "Filter customers by gift status (gifted/non-gifted)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get All Customers - With Pagination",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/customers?page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "limit",
-									"value": "20"
-								}
-							]
-						},
-						"description": "Get customers with pagination"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Single Customer",
+					"name": "List Customers - Search",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Customer has required fields\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.expect(jsonData.data).to.have.property('name');",
-									"    pm.expect(jsonData.data).to.have.property('mobileNumber');",
+									"pm.test('Search results returned', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers?search=john",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"],
+							"query": [
+								{ "key": "search", "value": "john", "description": "Search by name or mobile number" }
+							]
+						},
+						"description": "Search customers by name or mobile number."
+					},
+					"response": []
+				},
+				{
+					"name": "List Customers - Paginated",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Paginated response', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers?page=1&perPage=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Page number" },
+								{ "key": "perPage", "value": "20", "description": "Items per page (default 20)" }
+							]
+						},
+						"description": "Get customers with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "List Customers - Filter by District",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers?districtId=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"],
+							"query": [
+								{ "key": "districtId", "value": "1", "description": "Filter by district ID" }
+							]
+						},
+						"description": "Filter customers by district."
+					},
+					"response": []
+				},
+				{
+					"name": "List Customers - Filter by City",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers?cityId=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"],
+							"query": [
+								{ "key": "cityId", "value": "1", "description": "Filter by city ID" }
+							]
+						},
+						"description": "Filter customers by city."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Customer has required fields', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.expect(json.data).to.have.property('name');",
+									"    pm.expect(json.data).to.have.property('mobileNumber');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -508,16 +594,10 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/customers/{{customerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers",
-								"{{customerId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "{{customerId}}"]
 						},
-						"description": "Get single customer by ID with events and gifts"
+						"description": "Get single customer by ID with nested gifts. Admin can only view own customers."
 					},
 					"response": []
 				},
@@ -528,15 +608,15 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
+									"pm.test('Status code is 201', function () {",
 									"    pm.response.to.have.status(201);",
 									"});",
 									"",
-									"pm.test(\"Customer created\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.collectionVariables.set(\"customerId\", jsonData.data.id);",
+									"pm.test('Customer created', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.collectionVariables.set('customerId', json.data.id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -546,26 +626,18 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Test Customer\",\n    \"mobileNumber\": \"9876543210\",\n    \"address\": \"Test Address, Street 123\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"cityId\": 1,\n    \"eventTypeId\": 1,\n    \"eventDate\": \"2026-06-15\",\n    \"invitationStatusId\": 2,\n    \"notes\": \"Test customer for demo\"\n}"
+							"raw": "{\n    \"name\": \"Test Customer\",\n    \"mobileNumber\": \"9876543210\",\n    \"address\": \"Test Address, Street 123\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"cityId\": 1,\n    \"notes\": \"Test customer created via Postman\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/customers",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
 						},
-						"description": "Create new customer with optional event"
+						"description": "Create a new customer.\n\nRequired: name, mobileNumber (10 digits), address, districtId, cityId\nOptional: stateId (default 1/Kerala), notes\n\nAuto-saves customerId."
 					},
 					"response": []
 				},
@@ -576,13 +648,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Customer updated\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Customer updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -592,27 +664,18 @@
 					"request": {
 						"method": "PUT",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Updated Customer Name\",\n    \"address\": \"Updated Address\",\n    \"notes\": \"Updated notes\"\n}"
+							"raw": "{\n    \"name\": \"Updated Customer Name\",\n    \"address\": \"Updated Address, Lane 456\",\n    \"notes\": \"Updated via Postman\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/customers/{{customerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers",
-								"{{customerId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "{{customerId}}"]
 						},
-						"description": "Update customer details"
+						"description": "Update customer details (partial update supported).\n\nAll fields optional: name, mobileNumber, address, stateId, districtId, cityId, notes.\nAdmin can only update own customers."
 					},
 					"response": []
 				},
@@ -623,13 +686,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Customer deleted\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Customer deleted', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -641,45 +704,41 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/customers/{{customerId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers",
-								"{{customerId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "{{customerId}}"]
 						},
-						"description": "Delete customer (cascade deletes events and gifts)"
+						"description": "Delete customer. Cascade deletes all associated gifts.\nAdmin can only delete own customers."
 					},
 					"response": []
 				}
 			],
-			"description": "Customer management endpoints"
+			"description": "Customer CRUD endpoints.\n\nAdmin sees only own customers; superadmin sees all."
 		},
 		{
 			"name": "Events",
 			"item": [
 				{
-					"name": "Get Customer Events",
+					"name": "List Events",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response has events\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
+									"pm.test('Response has events', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('events');",
+									"    pm.expect(json.data.events).to.be.an('array');",
 									"});",
 									"",
-									"// Save first event ID",
-									"if (pm.response.json().data.length > 0) {",
-									"    pm.collectionVariables.set(\"eventId\", pm.response.json().data[0].id);",
+									"// Auto-save first event ID",
+									"var events = pm.response.json().data.events;",
+									"if (events && events.length > 0) {",
+									"    pm.collectionVariables.set('eventId', events[0].id);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -690,37 +749,100 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/customers/{{customerId}}/events",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers",
-								"{{customerId}}",
-								"events"
-							]
+							"raw": "{{baseUrl}}/api/events",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"]
 						},
-						"description": "Get all events for a customer"
+						"description": "List all events.\n\nQuery params: search, eventTypeId, eventCategory (self_event|customer_event), dateFrom, dateTo, page, perPage."
 					},
 					"response": []
 				},
 				{
-					"name": "Get Single Event",
+					"name": "List Events - Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events?search=wedding",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"],
+							"query": [
+								{ "key": "search", "value": "wedding", "description": "Search by event name" }
+							]
+						},
+						"description": "Search events by name."
+					},
+					"response": []
+				},
+				{
+					"name": "List Events - Filter by Category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events?eventCategory=self_event",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"],
+							"query": [
+								{ "key": "eventCategory", "value": "self_event", "description": "self_event or customer_event" }
+							]
+						},
+						"description": "Filter events by category.\n\n- self_event: Events hosted by the admin (e.g., own wedding)\n- customer_event: Events hosted by a customer"
+					},
+					"response": []
+				},
+				{
+					"name": "List Events - Filter by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events?eventTypeId=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"],
+							"query": [
+								{ "key": "eventTypeId", "value": "1", "description": "Filter by event type ID" }
+							]
+						},
+						"description": "Filter events by event type."
+					},
+					"response": []
+				},
+				{
+					"name": "List Events - Filter by Date Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events?dateFrom=2026-01-01&dateTo=2026-12-31",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"],
+							"query": [
+								{ "key": "dateFrom", "value": "2026-01-01", "description": "Start date (YYYY-MM-DD)" },
+								{ "key": "dateTo", "value": "2026-12-31", "description": "End date (YYYY-MM-DD)" }
+							]
+						},
+						"description": "Filter events by date range."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Event",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Event has required fields\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.expect(jsonData.data).to.have.property('eventDate');",
+									"pm.test('Event has required fields', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.expect(json.data).to.have.property('eventDate');",
+									"    pm.expect(json.data).to.have.property('eventCategory');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -731,36 +853,33 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/events/{{eventId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"events",
-								"{{eventId}}"
+							"raw": "{{baseUrl}}/api/events/show?id={{eventId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "show"],
+							"query": [
+								{ "key": "id", "value": "{{eventId}}" }
 							]
 						},
-						"description": "Get single event by ID"
+						"description": "Get single event by ID with nested customers and their gift details."
 					},
 					"response": []
 				},
 				{
-					"name": "Create Event",
+					"name": "Create Event (Super Admin)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
+									"pm.test('Status code is 201', function () {",
 									"    pm.response.to.have.status(201);",
 									"});",
 									"",
-									"pm.test(\"Event created\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.collectionVariables.set(\"eventId\", jsonData.data.id);",
+									"pm.test('Event created', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.collectionVariables.set('eventId', json.data.id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -770,43 +889,35 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"customerId\": \"{{customerId}}\",\n    \"eventTypeId\": 2,\n    \"eventDate\": \"2026-07-20\",\n    \"invitationStatusId\": 1,\n    \"notes\": \"Wedding ceremony\"\n}"
+							"raw": "{\n    \"name\": \"Wedding Ceremony\",\n    \"eventDate\": \"2026-07-20\",\n    \"eventTypeId\": 1,\n    \"eventCategory\": \"self_event\",\n    \"notes\": \"Annual wedding ceremony\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/events",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"events"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events"]
 						},
-						"description": "Create new event for a customer"
+						"description": "Create a new event. **Super Admin only.**\n\nRequired: name (max 255), eventDate (YYYY-MM-DD), eventTypeId\nOptional: eventCategory (default: self_event), notes\n\nAuto-saves eventId."
 					},
 					"response": []
 				},
 				{
-					"name": "Update Event",
+					"name": "Update Event (Super Admin)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Event updated\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Event updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -816,45 +927,38 @@
 					"request": {
 						"method": "PUT",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"eventDate\": \"2026-08-15\",\n    \"invitationStatusId\": 1,\n    \"notes\": \"Updated event notes\"\n}"
+							"raw": "{\n    \"name\": \"Updated Event Name\",\n    \"eventDate\": \"2026-08-15\",\n    \"notes\": \"Updated event notes\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/events/{{eventId}}/update",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"events",
-								"{{eventId}}",
-								"update"
+							"raw": "{{baseUrl}}/api/events/update?id={{eventId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "update"],
+							"query": [
+								{ "key": "id", "value": "{{eventId}}" }
 							]
 						},
-						"description": "Update event details"
+						"description": "Update event details. **Super Admin only.** Partial update supported.\n\nFields: name, eventDate, eventTypeId, eventCategory, notes (nullable)"
 					},
 					"response": []
 				},
 				{
-					"name": "Delete Event",
+					"name": "Delete Event (Super Admin)",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Event deleted\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Event deleted', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -865,23 +969,185 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/events/{{eventId}}/delete",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"events",
-								"{{eventId}}",
-								"delete"
+							"raw": "{{baseUrl}}/api/events/delete?id={{eventId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "delete"],
+							"query": [
+								{ "key": "id", "value": "{{eventId}}" }
 							]
 						},
-						"description": "Delete event (cascade deletes associated gifts)"
+						"description": "Delete event. **Super Admin only.**\n\nCascade deletes: event_customers and associated gifts."
 					},
 					"response": []
 				}
 			],
-			"description": "Customer event management endpoints"
+			"description": "Event management endpoints.\n\nEvents are standalone resources managed by Super Admin.\nCategories: self_event (admin's own events) and customer_event (a customer's event)."
+		},
+		{
+			"name": "Event Customers (Attachments)",
+			"item": [
+				{
+					"name": "List Event Customers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has customers', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('customers');",
+									"    pm.expect(json.data.customers).to.be.an('array');",
+									"});",
+									"",
+									"// Auto-save first attachment ID",
+									"var customers = pm.response.json().data.customers;",
+									"if (customers && customers.length > 0) {",
+									"    pm.collectionVariables.set('attachmentId', customers[0].id || customers[0].attachmentId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events/customers?eventId={{eventId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "customers"],
+							"query": [
+								{ "key": "eventId", "value": "{{eventId}}" }
+							]
+						},
+						"description": "List all customers attached to an event with their gift info.\n\nAdmin sees only own customers; superadmin sees all."
+					},
+					"response": []
+				},
+				{
+					"name": "Attach Customer to Event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Customer attached', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    if (json.data && json.data.id) {",
+									"        pm.collectionVariables.set('attachmentId', json.data.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"eventId\": \"{{eventId}}\",\n    \"customerId\": \"{{customerId}}\",\n    \"invitationStatusId\": 1,\n    \"careOfId\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "customers"]
+						},
+						"description": "Attach a customer to an event.\n\nRequired: eventId, customerId\nOptional: invitationStatusId (default 1), careOfId (required for self_event)\n\nRules:\n- customer_event: Only 1 customer allowed\n- self_event: Multiple customers, careOfId required\n- Duplicate attachment returns 409\n\nAuto-saves attachmentId."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Attachment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Attachment updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"invitationStatusId\": 2,\n    \"careOfId\": null\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/events/update-attachment?id={{attachmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "update-attachment"],
+							"query": [
+								{ "key": "id", "value": "{{attachmentId}}" }
+							]
+						},
+						"description": "Update an event-customer attachment.\n\nFields: invitationStatusId, careOfId (nullable)\nAdmin can only update own customers' attachments."
+					},
+					"response": []
+				},
+				{
+					"name": "Detach Customer from Event",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Customer detached', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/events/detach-customer?id={{attachmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "events", "detach-customer"],
+							"query": [
+								{ "key": "id", "value": "{{attachmentId}}" }
+							]
+						},
+						"description": "Detach a customer from an event. Also deletes related gifts for that event-customer combination.\n\nAdmin can only detach own customers."
+					},
+					"response": []
+				}
+			],
+			"description": "Manage the relationship between events and customers.\n\nSelf events can have multiple customers (with careOfId).\nCustomer events can only have 1 customer attached."
 		},
 		{
 			"name": "Gifts",
@@ -893,19 +1159,23 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response has gifts array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data.gifts).to.be.an('array');",
+									"pm.test('Response has gifts', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('gifts');",
+									"    pm.expect(json.data.gifts).to.be.an('array');",
+									"    pm.expect(json.data).to.have.property('totalValue');",
+									"    pm.expect(json.data).to.have.property('count');",
 									"});",
 									"",
-									"// Save first gift ID",
-									"if (pm.response.json().data.gifts && pm.response.json().data.gifts.length > 0) {",
-									"    pm.collectionVariables.set(\"giftId\", pm.response.json().data.gifts[0].id);",
+									"// Auto-save first gift ID",
+									"var gifts = pm.response.json().data.gifts;",
+									"if (gifts && gifts.length > 0) {",
+									"    pm.collectionVariables.set('giftId', gifts[0].id);",
 									"}"
 								],
 								"type": "text/javascript"
@@ -916,18 +1186,33 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/customers/{{customerId}}/gifts",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"customers",
-								"{{customerId}}",
-								"gifts"
+							"raw": "{{baseUrl}}/api/gifts/customer-gifts?customerId={{customerId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "gifts", "customer-gifts"],
+							"query": [
+								{ "key": "customerId", "value": "{{customerId}}" }
 							]
 						},
-						"description": "Get all gifts for a customer"
+						"description": "Get all gifts for a customer with total value and count.\n\nSupports pagination: page, perPage (default 20).\nAdmin sees only own customers' gifts."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Customer Gifts - Paginated",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/gifts/customer-gifts?customerId={{customerId}}&page=1&perPage=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "gifts", "customer-gifts"],
+							"query": [
+								{ "key": "customerId", "value": "{{customerId}}" },
+								{ "key": "page", "value": "1" },
+								{ "key": "perPage", "value": "10" }
+							]
+						},
+						"description": "Get customer gifts with pagination."
 					},
 					"response": []
 				},
@@ -938,15 +1223,15 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
+									"pm.test('Status code is 201', function () {",
 									"    pm.response.to.have.status(201);",
 									"});",
 									"",
-									"pm.test(\"Gift created\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.collectionVariables.set(\"giftId\", jsonData.data.id);",
+									"pm.test('Gift created', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.collectionVariables.set('giftId', json.data.id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -956,26 +1241,18 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"eventId\": \"{{eventId}}\",\n    \"giftTypeId\": 1,\n    \"value\": 5000,\n    \"description\": \"Wedding gift - Cash\"\n}"
+							"raw": "{\n    \"eventId\": \"{{eventId}}\",\n    \"customerId\": \"{{customerId}}\",\n    \"giftTypeId\": 1,\n    \"value\": 5000,\n    \"description\": \"Wedding gift - Cash\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/gifts",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"gifts"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "gifts"]
 						},
-						"description": "Add new gift to an event"
+						"description": "Create a new gift.\n\nRequired: eventId, customerId (must be attached to event), giftTypeId, value (>= 0)\nOptional: description\n\nAdmin can only create gifts for own customers.\nAuto-saves giftId."
 					},
 					"response": []
 				},
@@ -986,13 +1263,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Gift updated\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Gift updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1002,27 +1279,21 @@
 					"request": {
 						"method": "PUT",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"value\": 7500,\n    \"description\": \"Updated gift value\"\n}"
+							"raw": "{\n    \"giftTypeId\": 2,\n    \"value\": 7500,\n    \"description\": \"Updated gift - Gold\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/gifts/{{giftId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"gifts",
-								"{{giftId}}"
+							"raw": "{{baseUrl}}/api/gifts/update?id={{giftId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "gifts", "update"],
+							"query": [
+								{ "key": "id", "value": "{{giftId}}" }
 							]
 						},
-						"description": "Update gift details"
+						"description": "Update gift details. Partial update supported.\n\nFields: giftTypeId, value (>= 0), description\nAdmin can only update own customers' gifts."
 					},
 					"response": []
 				},
@@ -1033,13 +1304,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Gift deleted\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Gift deleted', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1050,50 +1321,46 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/gifts/{{giftId}}/delete",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"gifts",
-								"{{giftId}}",
-								"delete"
+							"raw": "{{baseUrl}}/api/gifts/delete?id={{giftId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "gifts", "delete"],
+							"query": [
+								{ "key": "id", "value": "{{giftId}}" }
 							]
 						},
-						"description": "Delete gift"
+						"description": "Delete a gift.\n\nAdmin can only delete own customers' gifts."
 					},
 					"response": []
 				}
 			],
-			"description": "Gift management endpoints"
+			"description": "Gift management endpoints.\n\nGifts are linked to an event-customer pair. A customer must be attached to an event before a gift can be created."
 		},
 		{
 			"name": "Admins (Super Admin Only)",
 			"item": [
 				{
-					"name": "Get All Admins",
+					"name": "List Admins",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Response is array\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
+									"pm.test('Response is array', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.be.an('array');",
 									"});",
 									"",
-									"// Save admin ID if exists",
+									"// Save first admin ID",
 									"var data = pm.response.json().data;",
 									"if (data && data.length > 0) {",
 									"    var admin = data.find(a => a.role === 'admin');",
 									"    if (admin) {",
-									"        pm.collectionVariables.set(\"adminId\", admin.id);",
+									"        pm.collectionVariables.set('adminId', admin.id);",
 									"    }",
 									"}"
 								],
@@ -1106,34 +1373,30 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/admins",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"admins"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins"]
 						},
-						"description": "Get all admin users (super admin only)"
+						"description": "Get all admin users (role=admin only, excludes superadmins).\n\n**Super Admin only.**"
 					},
 					"response": []
 				},
 				{
-					"name": "Get Single Admin",
+					"name": "Get Admin",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Admin has required fields\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.expect(jsonData.data).to.have.property('name');",
+									"pm.test('Admin has required fields', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.expect(json.data).to.have.property('name');",
+									"    pm.expect(json.data).to.have.property('role');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1145,16 +1408,10 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/admins/{{adminId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"admins",
-								"{{adminId}}"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins", "{{adminId}}"]
 						},
-						"description": "Get single admin by ID"
+						"description": "Get single admin by ID.\n\n**Super Admin only.**"
 					},
 					"response": []
 				},
@@ -1165,15 +1422,15 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
+									"pm.test('Status code is 201', function () {",
 									"    pm.response.to.have.status(201);",
 									"});",
 									"",
-									"pm.test(\"Admin created\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.have.property('id');",
-									"    pm.collectionVariables.set(\"adminId\", jsonData.data.id);",
+									"pm.test('Admin created', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
+									"    pm.expect(json.data).to.have.property('id');",
+									"    pm.collectionVariables.set('adminId', json.data.id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1183,27 +1440,18 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Test Admin\",\n    \"mobileNumber\": \"7777777777\",\n    \"password\": \"Admin@123\",\n    \"address\": \"Admin Address\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"cityId\": 1,\n    \"place\": \"Kochi\",\n    \"branch\": \"Main Branch\"\n}"
+							"raw": "{\n    \"name\": \"New Admin User\",\n    \"mobileNumber\": \"7777777777\",\n    \"password\": \"Admin@123\",\n    \"address\": \"Admin Address, Block A\",\n    \"stateId\": 1,\n    \"districtId\": 1,\n    \"cityId\": 1,\n    \"branch\": \"Main Branch\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/admins/create",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"admins",
-								"create"
-							]
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins", "create"]
 						},
-						"description": "Create new admin user (super admin only)"
+						"description": "Create a new admin user (always role=admin).\n\n**Super Admin only.**\n\nRequired: name, mobileNumber (10 digits, unique), password (min 6 chars), address, stateId, districtId, cityId, branch\n\nAuto-saves adminId."
 					},
 					"response": []
 				},
@@ -1214,13 +1462,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Admin updated\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Admin updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1230,27 +1478,21 @@
 					"request": {
 						"method": "PUT",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"{{adminId}}\",\n    \"name\": \"Updated Admin Name\",\n    \"branch\": \"Updated Branch\"\n}"
+							"raw": "{\n    \"name\": \"Updated Admin Name\",\n    \"branch\": \"Updated Branch\",\n    \"address\": \"New Address\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/admins/update",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"admins",
-								"update"
+							"raw": "{{baseUrl}}/api/admins/update?id={{adminId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins", "update"],
+							"query": [
+								{ "key": "id", "value": "{{adminId}}" }
 							]
 						},
-						"description": "Update admin details"
+						"description": "Update admin details. Partial update supported.\n\n**Super Admin only.**\n\nAllowed: name, address, stateId, districtId, cityId, branch, password\nForbidden: role, mobileNumber (returns error)"
 					},
 					"response": []
 				},
@@ -1261,13 +1503,13 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Status code is 200', function () {",
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Admin deleted\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
+									"pm.test('Admin deleted', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1279,215 +1521,818 @@
 						"header": [],
 						"url": {
 							"raw": "{{baseUrl}}/api/admins/delete?id={{adminId}}",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"admins",
-								"delete"
-							],
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins", "delete"],
 							"query": [
-								{
-									"key": "id",
-									"value": "{{adminId}}"
-								}
+								{ "key": "id", "value": "{{adminId}}" }
 							]
 						},
-						"description": "Delete admin user"
+						"description": "Delete an admin user.\n\n**Super Admin only.**\n\nRestrictions: Cannot delete self, cannot delete superadmin users."
 					},
 					"response": []
 				}
 			],
-			"description": "Admin management endpoints (super admin access only)"
+			"description": "Admin user management endpoints.\n\nAll endpoints require superadmin role. Only admin-role users are listed (superadmins excluded)."
 		},
 		{
 			"name": "Master Data",
 			"item": [
 				{
-					"name": "Get States",
-					"event": [
+					"name": "States",
+					"item": [
 						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has states\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/states",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"states"
-							]
-						},
-						"description": "Get all states"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Districts",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has districts\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/districts",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"districts"
-							]
-						},
-						"description": "Get all districts"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Districts by State",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/districts?stateId=1",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"districts"
-							],
-							"query": [
+							"name": "Get States",
+							"event": [
 								{
-									"key": "stateId",
-									"value": "1"
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has states', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
 								}
-							]
-						},
-						"description": "Get districts filtered by state ID"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Cities",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has cities\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/states",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "states"]
+								},
+								"description": "Get all states. Cached for 24 hours."
+							},
+							"response": []
 						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/cities",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"cities"
-							]
-						},
-						"description": "Get all cities"
-					},
-					"response": []
+					]
 				},
 				{
-					"name": "Get Cities by District",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/cities?districtId=1",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"cities"
-							],
-							"query": [
+					"name": "Districts",
+					"item": [
+						{
+							"name": "Get All Districts",
+							"event": [
 								{
-									"key": "districtId",
-									"value": "1"
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has districts', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
 								}
-							]
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/districts",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "districts"]
+								},
+								"description": "Get all districts. Cached for 24 hours."
+							},
+							"response": []
 						},
-						"description": "Get cities filtered by district ID"
-					},
-					"response": []
+						{
+							"name": "Get Districts by State",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/districts?stateId=1",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "districts"],
+									"query": [
+										{ "key": "stateId", "value": "1", "description": "Filter by state ID" }
+									]
+								},
+								"description": "Get districts filtered by state ID."
+							},
+							"response": []
+						}
+					]
 				},
 				{
-					"name": "Get Event Types",
+					"name": "Cities",
+					"item": [
+						{
+							"name": "Get All Cities",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has cities', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/cities",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "cities"]
+								},
+								"description": "Get all cities. Cached for 24 hours."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Cities by District",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/cities?districtId=1",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "cities"],
+									"query": [
+										{ "key": "districtId", "value": "1", "description": "Filter by district ID" }
+									]
+								},
+								"description": "Get cities filtered by district ID."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Event Types",
+					"item": [
+						{
+							"name": "Get Event Types",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has event types', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});",
+											"",
+											"// Auto-save first event type ID",
+											"var data = pm.response.json().data;",
+											"if (data && data.length > 0) {",
+											"    pm.collectionVariables.set('eventTypeId', String(data[0].id));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/event-types",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "event-types"]
+								},
+								"description": "Get all event types."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Event Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 201', function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test('Event type created', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.have.property('id');",
+											"    pm.collectionVariables.set('eventTypeId', String(json.data.id));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Engagement\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/event-types",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "event-types"]
+								},
+								"description": "Create a new event type. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Event Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Event type updated', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated Event Type\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/event-types?id={{eventTypeId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "event-types"],
+									"query": [
+										{ "key": "id", "value": "{{eventTypeId}}" }
+									]
+								},
+								"description": "Update event type name. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Event Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Event type deleted', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/event-types?id={{eventTypeId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "event-types"],
+									"query": [
+										{ "key": "id", "value": "{{eventTypeId}}" }
+									]
+								},
+								"description": "Delete event type. **Super Admin only.** Fails if the type is currently in use by events."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Gift Types",
+					"item": [
+						{
+							"name": "Get Gift Types",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has gift types', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});",
+											"",
+											"// Auto-save first gift type ID",
+											"var data = pm.response.json().data;",
+											"if (data && data.length > 0) {",
+											"    pm.collectionVariables.set('giftTypeId', String(data[0].id));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/gift-types",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "gift-types"]
+								},
+								"description": "Get all gift types."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Gift Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 201', function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test('Gift type created', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.have.property('id');",
+											"    pm.collectionVariables.set('giftTypeId', String(json.data.id));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Jewelry\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/gift-types",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "gift-types"]
+								},
+								"description": "Create a new gift type. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Gift Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Gift type updated', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated Gift Type\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/gift-types?id={{giftTypeId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "gift-types"],
+									"query": [
+										{ "key": "id", "value": "{{giftTypeId}}" }
+									]
+								},
+								"description": "Update gift type name. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Gift Type (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Gift type deleted', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/gift-types?id={{giftTypeId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "gift-types"],
+									"query": [
+										{ "key": "id", "value": "{{giftTypeId}}" }
+									]
+								},
+								"description": "Delete gift type. **Super Admin only.** Fails if the type is currently in use by gifts."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Invitation Status",
+					"item": [
+						{
+							"name": "Get Invitation Statuses",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has invitation statuses', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/invitation-status",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "invitation-status"]
+								},
+								"description": "Get all invitation statuses. Cached for 24 hours."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Care-Of Options",
+					"item": [
+						{
+							"name": "Get Care-Of Options",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Response has care-of options', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.be.an('array');",
+											"});",
+											"",
+											"// Auto-save first care-of ID",
+											"var data = pm.response.json().data;",
+											"if (data && data.length > 0) {",
+											"    pm.collectionVariables.set('careOfId', String(data[0].id));",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/care-of-options",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "care-of-options"]
+								},
+								"description": "Get all care-of options. Used for self_event customer attachments."
+							},
+							"response": []
+						},
+						{
+							"name": "Create Care-Of Option (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 201', function () {",
+											"    pm.response.to.have.status(201);",
+											"});",
+											"",
+											"pm.test('Care-of option created', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"    pm.expect(json.data).to.have.property('id');",
+											"    pm.collectionVariables.set('careOfId', String(json.data.id));",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Father\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/care-of-options",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "care-of-options"]
+								},
+								"description": "Create a new care-of option. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Update Care-Of Option (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Care-of option updated', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Updated Care-Of\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/master/care-of-options?id={{careOfId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "care-of-options"],
+									"query": [
+										{ "key": "id", "value": "{{careOfId}}" }
+									]
+								},
+								"description": "Update care-of option name. **Super Admin only.** Duplicate names are rejected."
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Care-Of Option (Super Admin)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('Status code is 200', function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test('Care-of option deleted', function () {",
+											"    var json = pm.response.json();",
+											"    pm.expect(json.success).to.eql(true);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/master/care-of-options?id={{careOfId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "master", "care-of-options"],
+									"query": [
+										{ "key": "id", "value": "{{careOfId}}" }
+									]
+								},
+								"description": "Delete care-of option. **Super Admin only.** Fails if the option is currently in use."
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "Master data (lookup tables) for dropdowns: states, districts, cities, event types, gift types, invitation statuses, and care-of options.\n\nGET endpoints available to all authenticated users.\nCUD (Create/Update/Delete) on event types, gift types, and care-of options are Super Admin only."
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Login - Invalid Credentials",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
+									"pm.test('Status code is 401', function () {",
+									"    pm.response.to.have.status(401);",
 									"});",
 									"",
-									"pm.test(\"Response has event types\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
+									"pm.test('Error response', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"mobileNumber\": \"9999999999\",\n    \"password\": \"wrongpassword\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Test login with invalid credentials. Expected: 401 Unauthorized."
+					},
+					"response": []
+				},
+				{
+					"name": "Access Without Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"",
+									"pm.test('Unauthorized error', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": { "type": "noauth" },
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
+						},
+						"description": "Try accessing a protected endpoint without a token. Expected: 401."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Customer - Validation Error",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400 or 422', function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+									"});",
+									"",
+									"pm.test('Validation error returned', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(false);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"\",\n    \"mobileNumber\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/customers",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers"]
+						},
+						"description": "Test customer creation with missing/invalid fields. Expected: 400/422 with validation errors."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Non-Existent Resource",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Not found error', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(false);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1498,35 +2343,28 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/master/event-types",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"event-types"
-							]
+							"raw": "{{baseUrl}}/api/customers/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "00000000-0000-0000-0000-000000000000"]
 						},
-						"description": "Get all event types"
+						"description": "Try to get a customer with a non-existent UUID. Expected: 404."
 					},
 					"response": []
 				},
 				{
-					"name": "Get Gift Types",
+					"name": "Admin Endpoint as Regular Admin",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
+									"pm.test('Status code is 403', function () {",
+									"    pm.response.to.have.status(403);",
 									"});",
 									"",
-									"pm.test(\"Response has gift types\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
+									"pm.test('Forbidden error', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.eql(false);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1537,61 +2375,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/api/master/gift-types",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"gift-types"
-							]
+							"raw": "{{baseUrl}}/api/admins",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "admins"]
 						},
-						"description": "Get all gift types"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Invitation Status",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has invitation statuses\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.success).to.eql(true);",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/master/invitation-status",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"master",
-								"invitation-status"
-							]
-						},
-						"description": "Get all invitation statuses"
+						"description": "Try to access admin-only endpoint as a regular admin. Login as admin first.\n\nExpected: 403 Forbidden."
 					},
 					"response": []
 				}
 			],
-			"description": "Master data endpoints for dropdowns (states, districts, cities, event types, gift types, invitation status)"
+			"description": "Test error handling and edge cases: invalid credentials, missing tokens, validation errors, 404s, and role-based access control."
 		}
 	]
 }

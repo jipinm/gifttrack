@@ -47,7 +47,7 @@ export default function AttachCustomerScreen() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [invitationStatusId, setInvitationStatusId] = useState<number | null>(1); // Default: Called
+  const [invitationStatusId, setInvitationStatusId] = useState<number | null>(null);
   const [careOfId, setCareOfId] = useState<number | null>(null);
   const [invitationError, setInvitationError] = useState<string | undefined>();
   const [careOfError, setCareOfError] = useState<string | undefined>();

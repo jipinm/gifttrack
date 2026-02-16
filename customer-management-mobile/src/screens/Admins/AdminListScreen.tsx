@@ -4,7 +4,8 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, FlatList, StyleSheet, Alert, RefreshControl } from 'react-native';
-import { Text, Searchbar, ActivityIndicator, Button } from 'react-native-paper';
+import { Text, Searchbar, ActivityIndicator, Button, FAB } from 'react-native-paper';
+import { HeaderTextButton } from '../../components/Common/HeaderButton';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { adminService } from '../../services/adminService';
@@ -54,6 +55,20 @@ export default function AdminListScreen() {
       setIsRefreshing(false);
     }
   }, []);
+
+  // Navigate to create admin
+  const handleCreateAdmin = useCallback(() => {
+    navigation.navigate('CreateAdmin');
+  }, [navigation]);
+
+  // Set header button
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderTextButton label="+ New" onPress={handleCreateAdmin} />
+      ),
+    });
+  }, [navigation, handleCreateAdmin]);
 
   // Initial load
   useEffect(() => {
@@ -109,7 +124,9 @@ export default function AdminListScreen() {
               if (response.success) {
                 setAdmins((prev) => prev.filter((a) => a.id !== admin.id));
               } else {
-                Alert.alert('Error', response.message || 'Failed to delete admin');
+                const msg = response.message || 'Failed to delete admin';
+                const title = msg.toLowerCase().startsWith('you cannot') ? 'Cannot Delete' : 'Error';
+                Alert.alert(title, msg);
               }
             } catch (err) {
               Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete admin');
@@ -205,10 +222,28 @@ export default function AdminListScreen() {
               {searchQuery ? 'No admins found' : 'No admins yet'}
             </Text>
             <Text style={styles.emptySubtitle}>
-              {searchQuery ? 'Try a different search term' : 'Go to "Add Admin" tab to create one'}
+              {searchQuery ? 'Try a different search term' : 'Tap the + button to add a new admin'}
             </Text>
+            {!searchQuery && (
+              <Button
+                mode="contained"
+                onPress={handleCreateAdmin}
+                style={{ marginTop: 16 }}
+                icon="plus"
+              >
+                Add Admin
+              </Button>
+            )}
           </View>
         }
+      />
+
+      {/* FAB */}
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        onPress={handleCreateAdmin}
+        color={colors.white}
       />
     </View>
   );
@@ -218,6 +253,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 28,
   },
   centerContainer: {
     flex: 1,

@@ -53,7 +53,7 @@ if (isset($data['name'])) {
 
 if (isset($data['eventDate'])) {
     $validator = new Validator();
-    $validator->field('eventDate', $data['eventDate'])->date();
+    $validator->date('eventDate', $data['eventDate']);
     if ($validator->fails()) {
         Response::validationError($validator->getErrors());
         exit;

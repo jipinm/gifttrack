@@ -135,7 +135,7 @@ export default function EditAdminScreen() {
         setIsSubmitting(false);
       }
     },
-    [adminId, navigation]
+    [adminId, navigation, selectedState, selectedDistrict, selectedCity]
   );
 
   // Check access - must be after all hooks

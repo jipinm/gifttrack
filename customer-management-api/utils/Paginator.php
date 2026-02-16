@@ -66,6 +66,14 @@ class Paginator {
     }
     
     /**
+     * Get data array
+     * @return array Data array
+     */
+    public function getData() {
+        return $this->data ?? [];
+    }
+    
+    /**
      * Get total pages
      * @return int Total pages
      */

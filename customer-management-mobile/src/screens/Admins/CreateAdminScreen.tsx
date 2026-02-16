@@ -6,7 +6,7 @@ import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { adminService } from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
@@ -31,7 +31,7 @@ export default function CreateAdminScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // Location state for dropdowns
-  const [selectedState, setSelectedState] = useState<State | null>(null);
+  const [selectedState, setSelectedState] = useState<State | null>({ id: 1, name: 'Kerala', code: 'KL' });
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [locationErrors, setLocationErrors] = useState({
@@ -103,8 +103,7 @@ export default function CreateAdminScreen() {
     return true;
   };
 
-  const validateBranch = (value: string): string | true => {
-    if (!value.trim()) return 'Branch is required';
+  const validateBranch = (_value: string): string | true => {
     return true;
   };
 
@@ -138,7 +137,7 @@ export default function CreateAdminScreen() {
           stateId: selectedState!.id,
           districtId: selectedDistrict!.id,
           cityId: selectedCity!.id,
-          branch: data.branch.trim(),
+          branch: data.branch?.trim() || '',
         };
 
         const response = await adminService.create(adminData);
@@ -146,7 +145,7 @@ export default function CreateAdminScreen() {
         if (response.success) {
           // Reset form
           reset();
-          setSelectedState(null);
+          setSelectedState({ id: 1, name: 'Kerala', code: 'KL' });
           setSelectedDistrict(null);
           setSelectedCity(null);
           
@@ -154,12 +153,8 @@ export default function CreateAdminScreen() {
             { 
               text: 'OK', 
               onPress: () => {
-                // Navigate to AdminsTab
-                navigation.dispatch(
-                  CommonActions.navigate({
-                    name: 'AdminsTab',
-                  })
-                );
+                // Navigate back to Admin List (useFocusEffect will auto-refresh)
+                navigation.goBack();
               } 
             },
           ]);
@@ -378,7 +373,7 @@ export default function CreateAdminScreen() {
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={styles.inputContainer}>
               <TextInput
-                label="Branch *"
+                label="Branch"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

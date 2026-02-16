@@ -3,9 +3,9 @@
  * Displays list of care-of options from master data
  * Used when attaching customers to self_event type events
  */
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { Text, Modal, Portal, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { Text, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
 import { useMasterData } from '../../context/MasterDataContext';
 import { colors, spacing, borderRadius, shadows, typography } from '../../styles/theme';
 import type { CareOfOption } from '../../types';
@@ -36,6 +36,18 @@ export default function CareOfDropdown({
   const [searchQuery, setSearchQuery] = useState('');
 
   const careOfOptions = useMemo(() => masterData?.careOfOptions ?? [], [masterData]);
+
+  // Auto-select default when value is null and items are loaded
+  const hasAutoSelected = useRef(false);
+  useEffect(() => {
+    if (value === null && !hasAutoSelected.current && careOfOptions.length > 0) {
+      const defaultItem = careOfOptions.find((item) => item.isDefault);
+      if (defaultItem) {
+        hasAutoSelected.current = true;
+        onSelect(defaultItem);
+      }
+    }
+  }, [value, careOfOptions, onSelect]);
 
   const selectedOption = useMemo(
     () => careOfOptions.find((opt) => opt.id === value) ?? null,
@@ -121,12 +133,10 @@ export default function CareOfDropdown({
         </HelperText>
       )}
 
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={closeModal}
-          contentContainerStyle={styles.modal}
-        >
+      <Modal visible={modalVisible} onRequestClose={closeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{label}</Text>
             <TouchableOpacity onPress={closeModal}>
@@ -144,7 +154,7 @@ export default function CareOfDropdown({
             />
           )}
 
-          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.optionsListContent}>
             {!required && (
               <TouchableOpacity style={styles.option} onPress={handleClear}>
                 <RadioButton
@@ -179,8 +189,9 @@ export default function CareOfDropdown({
               </View>
             )}
           </ScrollView>
-        </Modal>
-      </Portal>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -239,11 +250,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSize.sm,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modal: {
     backgroundColor: colors.surface,
-    margin: spacing.lg,
     borderRadius: borderRadius.lg,
+    width: '90%',
     maxHeight: SCREEN_HEIGHT * 0.6,
+    overflow: 'hidden',
     ...shadows.lg,
   },
   modalHeader: {
@@ -275,6 +293,9 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     maxHeight: SCREEN_HEIGHT * 0.4,
+  },
+  optionsListContent: {
+    paddingBottom: 20,
   },
   option: {
     flexDirection: 'row',

@@ -80,9 +80,8 @@ try {
         $errors['cityId'] = 'City is required';
     }
     
-    if (!isset($input['branch']) || empty(trim($input['branch']))) {
-        $errors['branch'] = 'Branch is required';
-    }
+    // Branch is optional
+    // No validation needed for branch
     
     if (!empty($errors)) {
         Response::error('Validation failed', 400, $errors);
@@ -108,7 +107,7 @@ try {
         'stateId' => intval($input['stateId']),
         'districtId' => intval($input['districtId']),
         'cityId' => intval($input['cityId']),
-        'branch' => trim($input['branch']),
+        'branch' => isset($input['branch']) ? trim($input['branch']) : '',
         'role' => 'admin' // Always create as admin, not superadmin
     ];
     

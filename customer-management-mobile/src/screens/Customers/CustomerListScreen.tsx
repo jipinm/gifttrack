@@ -4,7 +4,8 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { Text, FAB, ActivityIndicator, Badge, IconButton } from 'react-native-paper';
+import { Text, FAB, ActivityIndicator, Badge } from 'react-native-paper';
+import { HeaderIconButton } from '../../components/Common/HeaderButton';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { customerService } from '../../services/customerService';
@@ -196,10 +197,9 @@ export default function CustomerListScreen() {
     navigation.setOptions({
       headerRight: () => (
         <View style={styles.headerRight}>
-          <IconButton
+          <HeaderIconButton
             icon="filter-variant"
             onPress={() => setFilterModalVisible(true)}
-            iconColor={activeFilterCount > 0 ? colors.white : colors.white}
           />
           {activeFilterCount > 0 && (
             <Badge style={styles.filterBadge} size={16}>

@@ -34,6 +34,32 @@ if (!$eventModel->exists($id)) {
     exit;
 }
 
+// Check for related gifts
+$db = Database::getInstance()->getConnection();
+$stmt = $db->prepare("SELECT COUNT(*) as cnt FROM gifts WHERE event_id = ?");
+$stmt->execute([$id]);
+$giftCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+if ($giftCount > 0) {
+    Response::error(
+        "You cannot delete this event because {$giftCount} gift(s) are linked to it. Please delete the related gifts first before deleting this event.",
+        409
+    );
+    exit;
+}
+
+// Check for attached customers
+$stmt = $db->prepare("SELECT COUNT(*) as cnt FROM event_customers WHERE event_id = ?");
+$stmt->execute([$id]);
+$customerCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+if ($customerCount > 0) {
+    Response::error(
+        "You cannot delete this event because {$customerCount} customer(s) are attached to it. Please detach all customers first before deleting this event.",
+        409
+    );
+    exit;
+}
+
+// Safe to delete - no related data exists
 $success = $eventModel->delete($id);
 
 if (!$success) {

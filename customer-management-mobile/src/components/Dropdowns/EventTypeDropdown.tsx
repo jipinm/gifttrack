@@ -3,9 +3,9 @@
  * Displays list of event types from master data
  * Uses Modal for better positioning and accessibility
  */
-import React, { useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { Text, Modal, Portal, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Modal, Pressable } from 'react-native';
+import { Text, HelperText, ActivityIndicator, RadioButton, Searchbar } from 'react-native-paper';
 import { useMasterData } from '../../context/MasterDataContext';
 import { colors, spacing, borderRadius, shadows, typography } from '../../styles/theme';
 import type { EventType } from '../../types';
@@ -36,6 +36,18 @@ export default function EventTypeDropdown({
   const [searchQuery, setSearchQuery] = useState('');
 
   const eventTypes = useMemo(() => masterData?.eventTypes ?? [], [masterData]);
+
+  // Auto-select default when value is null and items are loaded
+  const hasAutoSelected = useRef(false);
+  useEffect(() => {
+    if (value === null && !hasAutoSelected.current && eventTypes.length > 0) {
+      const defaultItem = eventTypes.find((item) => item.isDefault);
+      if (defaultItem) {
+        hasAutoSelected.current = true;
+        onSelect(defaultItem);
+      }
+    }
+  }, [value, eventTypes, onSelect]);
 
   const selectedEventType = useMemo(
     () => eventTypes.find((et) => et.id === value) ?? null,
@@ -87,6 +99,33 @@ export default function EventTypeDropdown({
     );
   }
 
+  // Show error state if master data failed to load
+  if (!masterData && !isLoading) {
+    return (
+      <View style={styles.container}>
+        {label && (
+          <Text style={styles.label}>
+            {label}
+            {required && <Text style={styles.required}> *</Text>}
+          </Text>
+        )}
+        <TouchableOpacity
+          onPress={() => {}}
+          activeOpacity={0.7}
+          style={[styles.selectButton, styles.selectButtonDisabled]}
+        >
+          <Text style={styles.placeholderText}>Event types unavailable</Text>
+          <Text style={styles.chevron}>▼</Text>
+        </TouchableOpacity>
+        {error && (
+          <HelperText type="error" visible={!!error}>
+            {error}
+          </HelperText>
+        )}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {label && (
@@ -125,12 +164,10 @@ export default function EventTypeDropdown({
         </HelperText>
       )}
 
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={closeModal}
-          contentContainerStyle={styles.modalContent}
-        >
+      <Modal visible={modalVisible} onRequestClose={closeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{label}</Text>
             <TouchableOpacity onPress={closeModal} style={styles.closeButton}>
@@ -148,7 +185,7 @@ export default function EventTypeDropdown({
             />
           )}
 
-          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator>
+          <ScrollView style={styles.optionsList} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.optionsListContent}>
             {!required && selectedEventType && (
               <TouchableOpacity style={styles.optionItem} onPress={handleClear}>
                 <Text style={styles.clearText}>Clear selection</Text>
@@ -186,8 +223,9 @@ export default function EventTypeDropdown({
               ))
             )}
           </ScrollView>
-        </Modal>
-      </Portal>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -254,11 +292,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSize.sm,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContent: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.xl,
-    margin: spacing.lg,
+    width: '90%',
     maxHeight: SCREEN_HEIGHT * 0.7,
+    overflow: 'hidden',
     ...shadows.xl,
   },
   modalHeader: {
@@ -293,6 +338,9 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     maxHeight: SCREEN_HEIGHT * 0.5,
+  },
+  optionsListContent: {
+    paddingBottom: 20,
   },
   optionItem: {
     flexDirection: 'row',

@@ -3,8 +3,8 @@
  * Generic dropdown/picker component
  */
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity, ViewStyle } from 'react-native';
-import { Text, Modal, Portal, Searchbar, RadioButton } from 'react-native-paper';
+import { StyleSheet, View, ScrollView, TouchableOpacity, ViewStyle, Modal, Pressable } from 'react-native';
+import { Text, Searchbar, RadioButton } from 'react-native-paper';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 
 export interface DropdownOption {
@@ -90,8 +90,10 @@ export default function Dropdown({
       </TouchableOpacity>
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      <Portal>
-        <Modal visible={visible} onDismiss={closeModal} contentContainerStyle={styles.modalContent}>
+      <Modal visible={visible} onRequestClose={closeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeModal} />
+          <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{label}</Text>
             <TouchableOpacity onPress={closeModal}>
@@ -109,7 +111,7 @@ export default function Dropdown({
             />
           )}
 
-          <ScrollView style={styles.optionsList}>
+          <ScrollView style={styles.optionsList} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={styles.optionsListContent}>
             {filteredOptions.length === 0 ? (
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>No options found</Text>
@@ -136,8 +138,9 @@ export default function Dropdown({
               ))
             )}
           </ScrollView>
-        </Modal>
-      </Portal>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -189,11 +192,18 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     marginTop: spacing.xs,
   },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContent: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
-    margin: spacing.lg,
+    width: '90%',
     maxHeight: '80%',
+    overflow: 'hidden',
   },
   modalHeader: {
     alignItems: 'center',
@@ -225,6 +235,9 @@ const styles = StyleSheet.create({
   },
   optionsList: {
     maxHeight: 300,
+  },
+  optionsListContent: {
+    paddingBottom: 20,
   },
   optionItem: {
     alignItems: 'center',

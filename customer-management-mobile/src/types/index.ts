@@ -38,6 +38,8 @@ export interface MasterDataItem {
   id: number;
   name: string;
   code?: string; // For states
+  isActive?: boolean; // For admin management
+  isDefault?: boolean; // For default selection
 }
 
 export interface State extends MasterDataItem {
@@ -59,6 +61,16 @@ export type GiftType = MasterDataItem;
 export type InvitationStatus = MasterDataItem;
 
 export type CareOfOption = MasterDataItem;
+
+// Master data category type for management screens
+export type MasterDataCategory = 'eventTypes' | 'giftTypes' | 'invitationStatus' | 'careOfOptions';
+
+export interface MasterDataCategoryConfig {
+  key: MasterDataCategory;
+  title: string;
+  icon: string;
+  endpoint: string;
+}
 
 export interface MasterData {
   states: State[];
@@ -285,7 +297,7 @@ export interface AdminInput {
   stateId: number;
   districtId: number;
   cityId: number;
-  branch: string;
+  branch?: string;
 }
 
 export interface AdminUpdateInput {
@@ -354,6 +366,7 @@ export interface MasterDataContextType {
   refreshMasterData: () => Promise<void>;
   getDistrictsByState: (stateId: number) => District[];
   getCitiesByDistrict: (districtId: number) => City[];
+  getDefaultId: (category: MasterDataCategory) => number | null;
 }
 
 // ============================================================================

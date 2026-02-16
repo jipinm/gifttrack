@@ -71,8 +71,8 @@ if ($method === 'GET') {
     
     // Validate required fields
     $validator = new Validator();
-    $validator->field('eventId', $data['eventId'] ?? '')->required();
-    $validator->field('customerId', $data['customerId'] ?? '')->required();
+    $validator->required('eventId', $data['eventId'] ?? '', 'Event ID');
+    $validator->required('customerId', $data['customerId'] ?? '', 'Customer ID');
     
     if ($validator->fails()) {
         Response::validationError($validator->getErrors());

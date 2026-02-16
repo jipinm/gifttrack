@@ -14,6 +14,7 @@ import {
   Dialog,
   Portal,
 } from 'react-native-paper';
+import { HeaderIconButton, HeaderButtonGroup } from '../../components/Common/HeaderButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -148,9 +149,13 @@ export default function CustomerDetailsScreen() {
         setDeleteDialogVisible(false);
         navigation.goBack();
       } else {
-        Alert.alert('Error', response.message || 'Failed to delete customer');
+        setDeleteDialogVisible(false);
+        const msg = response.message || 'Failed to delete customer';
+        const title = msg.toLowerCase().startsWith('you cannot') ? 'Cannot Delete' : 'Error';
+        Alert.alert(title, msg);
       }
     } catch (err) {
+      setDeleteDialogVisible(false);
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete customer');
     } finally {
       setIsDeleting(false);
@@ -161,17 +166,15 @@ export default function CustomerDetailsScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={styles.headerRight}>
-          <IconButton icon="phone" onPress={handleCall} iconColor={colors.white} />
-          <IconButton icon="pencil" onPress={handleEdit} iconColor={colors.white} />
-          <IconButton
+        <HeaderButtonGroup>
+          <HeaderIconButton icon="phone" onPress={handleCall} />
+          <HeaderIconButton icon="pencil" onPress={handleEdit} />
+          <HeaderIconButton
             icon="delete"
             onPress={() => setDeleteDialogVisible(true)}
-            iconColor="#FFFFFF"
-            containerColor="#FF6B6B"
-            style={styles.deleteButton}
+            color="#FF6B6B"
           />
-        </View>
+        </HeaderButtonGroup>
       ),
     });
   }, [navigation, handleCall, handleEdit]);
@@ -403,12 +406,6 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.md,
-  },
-  headerRight: {
-    flexDirection: 'row',
-  },
-  deleteButton: {
-    borderRadius: 8,
   },
   card: {
     borderRadius: borderRadius.md,

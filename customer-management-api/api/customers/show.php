@@ -159,7 +159,30 @@ if ($method === 'GET') {
             Response::error('Customer not found', 404);
         }
         
-        // Delete customer (gifts will be cascade deleted)
+        // Check for related gifts
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM gifts WHERE customer_id = ?");
+        $stmt->execute([$customerId]);
+        $giftCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+        if ($giftCount > 0) {
+            Response::error(
+                "You cannot delete this customer because {$giftCount} gift(s) are linked to this account. Please delete the related gifts first before deleting this customer.",
+                409
+            );
+        }
+        
+        // Check for related event attachments
+        $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM event_customers WHERE customer_id = ?");
+        $stmt->execute([$customerId]);
+        $eventCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+        if ($eventCount > 0) {
+            Response::error(
+                "You cannot delete this customer because they are attached to {$eventCount} event(s). Please detach the customer from all events first before deleting.",
+                409
+            );
+        }
+        
+        // Safe to delete - no related data exists
         $success = $customerModel->delete($customerId, $createdByFilter);
         
         if (!$success) {

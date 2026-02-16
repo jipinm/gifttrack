@@ -15,7 +15,19 @@ import type {
   InvitationStatus,
   CareOfOption,
   MasterDataItem,
+  MasterDataCategory,
 } from '../types';
+
+// Helper to get endpoint by category
+const getCategoryEndpoint = (category: MasterDataCategory): string => {
+  const endpoints: Record<MasterDataCategory, string> = {
+    eventTypes: API_ENDPOINTS.MASTER_DATA.EVENT_TYPES,
+    giftTypes: API_ENDPOINTS.MASTER_DATA.GIFT_TYPES,
+    invitationStatus: API_ENDPOINTS.MASTER_DATA.INVITATION_STATUS,
+    careOfOptions: API_ENDPOINTS.MASTER_DATA.CARE_OF_OPTIONS,
+  };
+  return endpoints[category];
+};
 
 export const masterDataService = {
   // ========================================================================
@@ -97,12 +109,13 @@ export const masterDataService = {
   },
 
   // ========================================================================
+  // ========================================================================
   // Bulk load
   // ========================================================================
 
   loadAllMasterData: async () => {
     const [states, districts, cities, eventTypes, giftTypes, invitationStatus, careOfOptions] =
-      await Promise.all([
+      await Promise.allSettled([
         masterDataService.getStates(),
         masterDataService.getDistricts(),
         masterDataService.getCities(),
@@ -112,14 +125,70 @@ export const masterDataService = {
         masterDataService.getCareOfOptions(),
       ]);
 
-    return {
-      states: states.data || [],
-      districts: districts.data || [],
-      cities: cities.data || [],
-      eventTypes: eventTypes.data || [],
-      giftTypes: giftTypes.data || [],
-      invitationStatus: invitationStatus.data || [],
-      careOfOptions: careOfOptions.data || [],
+    // Helper to extract data from settled promises
+    const getData = <T,>(result: PromiseSettledResult<{ data?: T }>, fallback: T): T => {
+      if (result.status === 'fulfilled' && result.value.data) {
+        return result.value.data;
+      }
+      if (result.status === 'rejected') {
+        console.error('Master data fetch failed:', result.reason);
+      }
+      return fallback;
     };
+
+    return {
+      states: getData(states, []),
+      districts: getData(districts, []),
+      cities: getData(cities, []),
+      eventTypes: getData(eventTypes, []),
+      giftTypes: getData(giftTypes, []),
+      invitationStatus: getData(invitationStatus, []),
+      careOfOptions: getData(careOfOptions, []),
+    };
+  },
+
+  // ========================================================================
+  // Admin Management - Get all (including inactive) by category
+  // ========================================================================
+
+  getAllByCategory: async (category: MasterDataCategory): Promise<ApiResponse<MasterDataItem[]>> => {
+    const endpoint = getCategoryEndpoint(category);
+    return await api.get<MasterDataItem[]>(`${endpoint}?all=1`);
+  },
+
+  // ========================================================================
+  // Admin Management - Create by category
+  // ========================================================================
+
+  createByCategory: async (category: MasterDataCategory, name: string): Promise<ApiResponse<MasterDataItem>> => {
+    const endpoint = getCategoryEndpoint(category);
+    return await api.post<MasterDataItem>(endpoint, { name });
+  },
+
+  // ========================================================================
+  // Admin Management - Update by category
+  // ========================================================================
+
+  updateByCategory: async (category: MasterDataCategory, id: number, name: string): Promise<ApiResponse<MasterDataItem>> => {
+    const endpoint = getCategoryEndpoint(category);
+    return await api.put<MasterDataItem>(`${endpoint}?id=${id}`, { name });
+  },
+
+  // ========================================================================
+  // Admin Management - Toggle active status by category
+  // ========================================================================
+
+  toggleActiveByCategory: async (category: MasterDataCategory, id: number): Promise<ApiResponse<MasterDataItem>> => {
+    const endpoint = getCategoryEndpoint(category);
+    return await api.patch<MasterDataItem>(`${endpoint}?id=${id}`);
+  },
+
+  // ========================================================================
+  // Admin Management - Set default by category
+  // ========================================================================
+
+  setDefaultByCategory: async (category: MasterDataCategory, id: number): Promise<ApiResponse<MasterDataItem>> => {
+    const endpoint = getCategoryEndpoint(category);
+    return await api.patch<MasterDataItem>(`${endpoint}?id=${id}&action=set-default`);
   },
 };

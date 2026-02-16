@@ -64,7 +64,30 @@ try {
         Response::error('Cannot delete super admin users', 403);
     }
     
-    // Delete admin
+    // Check for customers created by this admin
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM customers WHERE created_by = ?");
+    $stmt->execute([$adminId]);
+    $customerCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+    if ($customerCount > 0) {
+        Response::error(
+            "You cannot delete this admin because {$customerCount} customer(s) were created by this account. Please reassign or delete those customers first before deleting this admin.",
+            409
+        );
+    }
+    
+    // Check for events created by this admin
+    $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM events WHERE created_by = ?");
+    $stmt->execute([$adminId]);
+    $eventCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+    if ($eventCount > 0) {
+        Response::error(
+            "You cannot delete this admin because {$eventCount} event(s) were created by this account. Please delete those events first before deleting this admin.",
+            409
+        );
+    }
+    
+    // Safe to delete - no related data exists
     $result = $userModel->delete($adminId);
     
     if (!$result) {

@@ -33,6 +33,31 @@ if (!$ecModel->exists($id, $adminId)) {
     exit;
 }
 
+// Check for related gifts before detaching
+$db = Database::getInstance()->getConnection();
+$stmt = $db->prepare(
+    "SELECT ec.event_id, ec.customer_id, c.name as customer_name 
+     FROM event_customers ec 
+     JOIN customers c ON ec.customer_id = c.id 
+     WHERE ec.id = ?"
+);
+$stmt->execute([$id]);
+$attachment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($attachment) {
+    $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM gifts WHERE event_id = ? AND customer_id = ?");
+    $stmt->execute([$attachment['event_id'], $attachment['customer_id']]);
+    $giftCount = $stmt->fetch(PDO::FETCH_ASSOC)['cnt'];
+    if ($giftCount > 0) {
+        $customerName = $attachment['customer_name'];
+        Response::error(
+            "You cannot detach {$customerName} because {$giftCount} gift(s) are linked to this customer for this event. Please delete the related gifts first before detaching.",
+            409
+        );
+        exit;
+    }
+}
+
 $success = $ecModel->detach($id);
 
 if (!$success) {
