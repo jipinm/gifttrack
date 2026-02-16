@@ -35,19 +35,13 @@ class EventCustomer {
                         ist.name as invitation_status_name,
                         co.name as care_of_name,
                         ua.name as attached_by_name,
-                        g.id as gift_id,
-                        g.gift_type_id,
-                        gt.name as gift_type_name,
-                        g.value as gift_value,
-                        g.description as gift_description,
-                        g.created_at as gift_created_at
+                        (SELECT COUNT(*) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as gift_count,
+                        (SELECT COALESCE(SUM(g.value), 0) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as total_gift_value
                     FROM event_customers ec
                     INNER JOIN customers c ON ec.customer_id = c.id
                     LEFT JOIN invitation_status ist ON ec.invitation_status_id = ist.id
                     LEFT JOIN care_of_options co ON ec.care_of_id = co.id
                     LEFT JOIN users ua ON ec.attached_by = ua.id
-                    LEFT JOIN gifts g ON g.event_id = ec.event_id AND g.customer_id = ec.customer_id
-                    LEFT JOIN gift_types gt ON g.gift_type_id = gt.id
                     WHERE ec.event_id = :eventId";
             
             $params = ['eventId' => $eventId];
@@ -156,9 +150,12 @@ class EventCustomer {
                         e.event_category,
                         c.name as customer_name,
                         c.mobile_number as customer_mobile,
+                        c.address as customer_address,
                         ist.name as invitation_status_name,
                         co.name as care_of_name,
-                        ua.name as attached_by_name
+                        ua.name as attached_by_name,
+                        (SELECT COUNT(*) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as gift_count,
+                        (SELECT COALESCE(SUM(g.value), 0) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as total_gift_value
                     FROM event_customers ec
                     INNER JOIN events e ON ec.event_id = e.id
                     INNER JOIN customers c ON ec.customer_id = c.id
@@ -420,21 +417,15 @@ class EventCustomer {
             ];
         }
         
-        // Include gift info if available
-        if (!empty($attachment['gift_id'])) {
-            $category = $eventCategory ?? ($attachment['event_category'] ?? null);
-            $formatted['gift'] = [
-                'id' => $attachment['gift_id'],
-                'giftType' => [
-                    'id' => (int)$attachment['gift_type_id'],
-                    'name' => $attachment['gift_type_name'] ?? null
-                ],
-                'value' => (float)$attachment['gift_value'],
-                'description' => $attachment['gift_description'] ?? null,
-                'direction' => $category === 'self_event' ? 'received' : 'given'
-            ];
+        // Gift aggregates
+        $category = $eventCategory ?? ($attachment['event_category'] ?? null);
+        $formatted['giftDirection'] = $category === 'self_event' ? 'received' : 'given';
+        if (isset($attachment['gift_count'])) {
+            $formatted['giftCount'] = (int)$attachment['gift_count'];
+            $formatted['totalGiftValue'] = (float)($attachment['total_gift_value'] ?? 0);
         } else {
-            $formatted['gift'] = null;
+            $formatted['giftCount'] = 0;
+            $formatted['totalGiftValue'] = 0.0;
         }
         
         return $formatted;

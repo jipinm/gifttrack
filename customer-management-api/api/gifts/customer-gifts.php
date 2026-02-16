@@ -28,6 +28,7 @@ try {
     
     // Get customer ID from query parameter (support both camelCase and snake_case)
     $customerId = $_GET['customerId'] ?? $_GET['customer_id'] ?? null;
+    $eventId = $_GET['eventId'] ?? $_GET['event_id'] ?? null;
     
     if (!$customerId || empty($customerId)) {
         Response::error('Customer ID is required', 400);
@@ -54,7 +55,7 @@ try {
         $paginator = paginate(20); // Default 20 items per page
         
         // Get paginated gifts
-        $result = $giftModel->getByCustomerId($customerId, $paginator);
+        $result = $giftModel->getByCustomerId($customerId, $paginator, $eventId);
         
         // Format gifts for response
         $formattedGifts = array_map(function($gift) use ($giftModel) {
@@ -78,7 +79,7 @@ try {
         Response::success($response, 'Gifts retrieved successfully', 200);
     } else {
         // Get all gifts without pagination
-        $gifts = $giftModel->getByCustomerId($customerId);
+        $gifts = $giftModel->getByCustomerId($customerId, null, $eventId);
         
         // Format gifts for response
         $formattedGifts = array_map(function($gift) use ($giftModel) {

@@ -20,16 +20,24 @@ class Gift {
      * Get all gifts for a specific customer (through events)
      * @param string $customerId Customer UUID
      * @param Paginator|null $paginator Paginator instance for pagination
+     * @param string|null $eventId Optional event UUID to filter by
      * @return array|Paginator Array of gifts or paginated response
      */
-    public function getByCustomerId($customerId, $paginator = null) {
+    public function getByCustomerId($customerId, $paginator = null, $eventId = null) {
         try {
+            $where = "WHERE g.customer_id = :customerId";
+            $params = ['customerId' => $customerId];
+            
+            if ($eventId) {
+                $where .= " AND g.event_id = :eventId";
+                $params['eventId'] = $eventId;
+            }
+            
             // If paginator is provided, get total count first
             if ($paginator) {
-                $countSql = "SELECT COUNT(*) as total FROM gifts g
-                            WHERE g.customer_id = :customerId";
+                $countSql = "SELECT COUNT(*) as total FROM gifts g " . $where;
                 $countStmt = $this->connection->prepare($countSql);
-                $countStmt->execute(['customerId' => $customerId]);
+                $countStmt->execute($params);
                 $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
                 $paginator->setTotal($total);
             }
@@ -47,7 +55,7 @@ class Gift {
                     INNER JOIN events e ON g.event_id = e.id
                     LEFT JOIN gift_types gt ON g.gift_type_id = gt.id
                     LEFT JOIN event_types et ON e.event_type_id = et.id
-                    WHERE g.customer_id = :customerId
+                    " . $where . "
                     ORDER BY e.event_date DESC";
             
             // Add pagination if provided
@@ -56,7 +64,7 @@ class Gift {
             }
             
             $stmt = $this->connection->prepare($sql);
-            $stmt->execute(['customerId' => $customerId]);
+            $stmt->execute($params);
             
             $gifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
             

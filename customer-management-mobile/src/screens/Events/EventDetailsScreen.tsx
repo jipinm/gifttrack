@@ -4,7 +4,7 @@
  * SuperAdmin can edit/delete event, all users can manage attachments
  */
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import {
   Text,
   Button,
@@ -13,13 +13,12 @@ import {
   IconButton,
   Dialog,
   Portal,
-  Chip,
 } from 'react-native-paper';
+import { HeaderIconButton, HeaderButtonGroup } from '../../components/Common/HeaderButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { eventService } from '../../services/eventService';
-import { giftService } from '../../services/giftService';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import type { Event, EventCustomer } from '../../types';
@@ -39,35 +38,81 @@ export default function EventDetailsScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const [customers, setCustomers] = useState<EventCustomer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [detachTarget, setDetachTarget] = useState<EventCustomer | null>(null);
 
+  /**
+   * Normalise the customers array from either the show-endpoint format
+   * or the standalone getEventCustomers format into EventCustomer[].
+   */
+  const normalizeCustomers = useCallback(
+    (raw: any): EventCustomer[] => {
+      if (!raw || !Array.isArray(raw)) return [];
+
+      return raw.map((item: any) => {
+        // Already has nested customer object (new format)
+        if (item.customer && typeof item.customer === 'object') {
+          return {
+            ...item,
+            giftCount: item.giftCount ?? 0,
+            totalGiftValue: item.totalGiftValue ?? 0,
+            giftDirection: item.giftDirection ?? 'received',
+          } as EventCustomer;
+        }
+        // Legacy flat format
+        return {
+          id: item.id ?? item.attachmentId,
+          eventId: item.eventId ?? eventId,
+          customerId: item.customerId,
+          customer: {
+            id: item.customerId,
+            name: item.name ?? 'Unknown',
+            mobileNumber: item.mobileNumber ?? '',
+          },
+          invitationStatus: item.invitationStatus ?? { id: 0, name: 'N/A' },
+          careOf: item.careOf ?? null,
+          giftDirection: item.giftDirection ?? 'received',
+          giftCount: item.giftCount ?? 0,
+          totalGiftValue: item.totalGiftValue ?? 0,
+          attachedBy: item.attachedBy ?? { id: '', name: '' },
+          createdAt: item.createdAt ?? '',
+        } as EventCustomer;
+      });
+    },
+    [eventId]
+  );
+
   // Load event data
   const loadData = useCallback(async () => {
     try {
-      setIsLoading(true);
+      if (!isRefreshing) setIsLoading(true);
       setError(null);
 
       const eventResponse = await eventService.getById(eventId);
 
       if (eventResponse.success && eventResponse.data) {
         setEvent(eventResponse.data);
-        // Customers may come nested in event response
         if (eventResponse.data.customers) {
-          setCustomers(eventResponse.data.customers);
+          setCustomers(normalizeCustomers(eventResponse.data.customers));
         }
       } else {
         setError(eventResponse.message || 'Failed to load event');
         return;
       }
 
-      // Also try loading attached customers separately
+      // Also try loading attached customers separately (has aggregated gift data)
       try {
         const customersResponse = await eventService.getEventCustomers(eventId);
         if (customersResponse.success && customersResponse.data) {
-          setCustomers(customersResponse.data);
+          const data = customersResponse.data as any;
+          if (data.customers && Array.isArray(data.customers)) {
+            setCustomers(normalizeCustomers(data.customers));
+          } else if (Array.isArray(data)) {
+            setCustomers(normalizeCustomers(data));
+          }
         }
       } catch (custErr) {
         console.log('Event customers fetch fallback:', custErr);
@@ -76,14 +121,21 @@ export default function EventDetailsScreen() {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [eventId]);
+  }, [eventId, normalizeCustomers, isRefreshing]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
     }, [loadData])
   );
+
+  // Pull to refresh
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    loadData();
+  }, [loadData]);
 
   // Format date
   const formatDate = (dateString: string): string => {
@@ -96,8 +148,8 @@ export default function EventDetailsScreen() {
   };
 
   // Format currency
-  const formatCurrency = (value: number): string => {
-    return `₹${value.toLocaleString('en-IN')}`;
+  const formatCurrency = (value?: number): string => {
+    return `₹${(value ?? 0).toLocaleString('en-IN')}`;
   };
 
   // Delete event (SuperAdmin)
@@ -109,9 +161,13 @@ export default function EventDetailsScreen() {
         setDeleteDialogVisible(false);
         navigation.goBack();
       } else {
-        Alert.alert('Error', response.message || 'Failed to delete event');
+        setDeleteDialogVisible(false);
+        const msg = response.message || 'Failed to delete event';
+        const title = msg.toLowerCase().startsWith('you cannot') ? 'Cannot Delete' : 'Error';
+        Alert.alert(title, msg);
       }
     } catch (err) {
+      setDeleteDialogVisible(false);
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete event');
     } finally {
       setIsDeleting(false);
@@ -128,12 +184,39 @@ export default function EventDetailsScreen() {
         setDetachTarget(null);
         loadData();
       } else {
-        Alert.alert('Error', response.message || 'Failed to detach customer');
+        setDetachTarget(null);
+        const msg = response.message || 'Failed to detach customer';
+        const title = msg.toLowerCase().startsWith('you cannot') ? 'Cannot Detach' : 'Error';
+        Alert.alert(title, msg);
       }
     } catch (err) {
+      setDetachTarget(null);
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to detach customer');
     }
   }, [detachTarget, loadData]);
+
+  // Navigate to attach customer
+  const handleAttachCustomer = useCallback(() => {
+    if (!event) return;
+    navigation.navigate('AttachCustomer', {
+      eventId,
+      eventCategory: event.eventCategory,
+    });
+  }, [navigation, eventId, event]);
+
+  // Navigate to customer gifts in this event
+  const handleViewGifts = useCallback(
+    (attachment: EventCustomer) => {
+      if (!event) return;
+      navigation.navigate('EventCustomerGifts', {
+        eventId,
+        customerId: attachment.customerId,
+        customerName: attachment.customer?.name || 'Customer',
+        eventCategory: event.eventCategory,
+      });
+    },
+    [navigation, eventId, event]
+  );
 
   // Navigate to add gift for a specific customer in this event
   const handleAddGift = useCallback(
@@ -143,40 +226,29 @@ export default function EventDetailsScreen() {
     [navigation, eventId]
   );
 
-  // Navigate to edit gift
-  const handleEditGift = useCallback(
-    (giftId: string, customerId: string) => {
-      navigation.navigate('EditGift', { giftId, customerId });
-    },
-    [navigation]
-  );
-
   // Set header options
   useEffect(() => {
     if (isSuperAdminValue) {
       navigation.setOptions({
         headerRight: () => (
-          <View style={styles.headerRight}>
-            <IconButton
+          <HeaderButtonGroup>
+            <HeaderIconButton
               icon="pencil"
               onPress={() => navigation.navigate('EditEvent', { eventId })}
-              iconColor={colors.white}
             />
-            <IconButton
+            <HeaderIconButton
               icon="delete"
               onPress={() => setDeleteDialogVisible(true)}
-              iconColor="#FFFFFF"
-              containerColor="#FF6B6B"
-              style={styles.deleteButton}
+              color="#FF6B6B"
             />
-          </View>
+          </HeaderButtonGroup>
         ),
       });
     }
   }, [navigation, isSuperAdminValue, eventId]);
 
   // Loading
-  if (isLoading) {
+  if (isLoading && !isRefreshing) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -198,9 +270,18 @@ export default function EventDetailsScreen() {
     );
   }
 
+  // Can attach more customers?
+  const canAttachMore =
+    event.eventCategory === 'self_event' || customers.length === 0;
+
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      >
         {/* Event Info Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -226,7 +307,7 @@ export default function EventDetailsScreen() {
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>🏷️ Type</Text>
-            <Text style={styles.infoValue}>{event.eventType.name}</Text>
+            <Text style={styles.infoValue}>{event.eventType?.name || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
@@ -252,11 +333,11 @@ export default function EventDetailsScreen() {
           <Divider style={styles.divider} />
           <View style={styles.statsRow}>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{event.customerCount}</Text>
+              <Text style={styles.statNumber}>{event.customerCount ?? 0}</Text>
               <Text style={styles.statLabel}>Customers</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>{event.giftCount}</Text>
+              <Text style={styles.statNumber}>{event.giftCount ?? 0}</Text>
               <Text style={styles.statLabel}>Gifts</Text>
             </View>
             <View style={styles.stat}>
@@ -270,8 +351,18 @@ export default function EventDetailsScreen() {
 
         {/* Attached Customers Section */}
         <View style={styles.card}>
-          <View style={styles.cardHeader}>
+          <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>👥 Attached Customers</Text>
+            {canAttachMore && (
+              <Button
+                mode="contained-tonal"
+                compact
+                icon="account-plus"
+                onPress={handleAttachCustomer}
+              >
+                Attach
+              </Button>
+            )}
           </View>
 
           {customers.length > 0 ? (
@@ -279,7 +370,11 @@ export default function EventDetailsScreen() {
               <View key={attachment.id}>
                 {index > 0 && <Divider style={styles.itemDivider} />}
                 <View style={styles.customerItem}>
-                  <View style={styles.customerInfo}>
+                  <TouchableOpacity
+                    style={styles.customerInfo}
+                    onPress={() => handleViewGifts(attachment)}
+                    activeOpacity={0.7}
+                  >
                     <Text style={styles.customerName}>
                       {attachment.customer?.name || 'Unknown'}
                     </Text>
@@ -295,26 +390,31 @@ export default function EventDetailsScreen() {
                       </Text>
                     )}
 
-                    {/* Gift info for this customer */}
-                    {attachment.giftCount > 0 ? (
+                    {/* Gift summary for this customer */}
+                    {(attachment.giftCount ?? 0) > 0 ? (
                       <View style={styles.giftContainer}>
                         <Text style={styles.giftLabel}>
-                          🎁 {attachment.giftCount} gift{attachment.giftCount > 1 ? 's' : ''} -{' '}
+                          🎁 {attachment.giftCount} gift
+                          {(attachment.giftCount ?? 0) > 1 ? 's' : ''} –{' '}
                           {formatCurrency(attachment.totalGiftValue)}
                         </Text>
+                        <Text style={styles.tapHint}>Tap to view gifts →</Text>
                       </View>
                     ) : (
-                      <Button
-                        mode="text"
-                        compact
-                        icon="gift"
-                        onPress={() => handleAddGift(attachment.customerId)}
-                        style={styles.addGiftButton}
-                      >
-                        Add Gift
-                      </Button>
+                      <View style={styles.noGiftRow}>
+                        <Button
+                          mode="text"
+                          compact
+                          icon="gift"
+                          onPress={() => handleAddGift(attachment.customerId)}
+                          style={styles.addGiftButton}
+                        >
+                          Add Gift
+                        </Button>
+                        <Text style={styles.tapHint}>or tap to view</Text>
+                      </View>
                     )}
-                  </View>
+                  </TouchableOpacity>
 
                   <View style={styles.customerActions}>
                     <IconButton
@@ -331,6 +431,14 @@ export default function EventDetailsScreen() {
           ) : (
             <View style={styles.emptyCustomers}>
               <Text style={styles.emptyText}>No customers attached yet</Text>
+              <Button
+                mode="contained-tonal"
+                icon="account-plus"
+                onPress={handleAttachCustomer}
+                style={{ marginTop: spacing.sm }}
+              >
+                Attach Customer
+              </Button>
             </View>
           )}
         </View>
@@ -351,8 +459,7 @@ export default function EventDetailsScreen() {
           <Dialog.Title>Delete Event</Dialog.Title>
           <Dialog.Content>
             <Text>
-              Are you sure you want to delete "{event.name}"? This will also remove all customer
-              attachments and gifts.
+              Are you sure you want to delete "{event.name}"? This action cannot be undone.
             </Text>
           </Dialog.Content>
           <Dialog.Actions>
@@ -374,16 +481,24 @@ export default function EventDetailsScreen() {
         <Dialog visible={!!detachTarget} onDismiss={() => setDetachTarget(null)}>
           <Dialog.Title>Detach Customer</Dialog.Title>
           <Dialog.Content>
-            <Text>
-              Are you sure you want to detach {detachTarget?.customer?.name} from this event? This
-              will also delete any gifts for this customer in this event.
-            </Text>
+            {(detachTarget?.giftCount ?? 0) > 0 ? (
+              <Text>
+                {detachTarget?.customer?.name} has {detachTarget?.giftCount} gift(s) linked to this event.
+                Please delete all related gifts first before detaching.
+              </Text>
+            ) : (
+              <Text>
+                Are you sure you want to detach {detachTarget?.customer?.name} from this event?
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
             <Button onPress={() => setDetachTarget(null)}>Cancel</Button>
-            <Button onPress={handleDetachCustomer} textColor={colors.error}>
-              Detach
-            </Button>
+            {(detachTarget?.giftCount ?? 0) === 0 && (
+              <Button onPress={handleDetachCustomer} textColor={colors.error}>
+                Detach
+              </Button>
+            )}
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -419,12 +534,6 @@ const styles = StyleSheet.create({
     color: colors.error,
     textAlign: 'center',
     marginBottom: spacing.md,
-  },
-  headerRight: {
-    flexDirection: 'row',
-  },
-  deleteButton: {
-    borderRadius: 8,
   },
   card: {
     borderRadius: borderRadius.md,
@@ -507,6 +616,12 @@ const styles = StyleSheet.create({
   valueText: {
     color: colors.success,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
   sectionTitle: {
     fontSize: typography.fontSize.lg,
     fontWeight: '600',
@@ -549,9 +664,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  addGiftButton: {
-    alignSelf: 'flex-start',
+  tapHint: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  noGiftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: spacing.xs,
+  },
+  addGiftButton: {
+    marginLeft: -spacing.sm,
   },
   customerActions: {
     flexDirection: 'column',

@@ -115,7 +115,10 @@ class Event {
             $sql = "SELECT 
                         e.*,
                         et.name as event_type_name,
-                        u.name as created_by_name
+                        u.name as created_by_name,
+                        (SELECT COUNT(*) FROM event_customers ec WHERE ec.event_id = e.id) as customer_count,
+                        (SELECT COUNT(*) FROM gifts g WHERE g.event_id = e.id) as gift_count,
+                        (SELECT COALESCE(SUM(g.value), 0) FROM gifts g WHERE g.event_id = e.id) as total_gift_value
                     FROM events e
                     LEFT JOIN event_types et ON e.event_type_id = et.id
                     LEFT JOIN users u ON e.created_by = u.id
@@ -129,7 +132,7 @@ class Event {
                 return null;
             }
             
-            // Get attached customers with their gifts
+            // Get attached customers with gift aggregates (no gift JOIN to avoid row duplication)
             $customersSql = "SELECT 
                                 ec.*,
                                 c.name as customer_name,
@@ -138,19 +141,13 @@ class Event {
                                 ist.name as invitation_status_name,
                                 co.name as care_of_name,
                                 ua.name as attached_by_name,
-                                g.id as gift_id,
-                                g.gift_type_id,
-                                gt.name as gift_type_name,
-                                g.value as gift_value,
-                                g.description as gift_description,
-                                g.created_at as gift_created_at
+                                (SELECT COUNT(*) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as gift_count,
+                                (SELECT COALESCE(SUM(g.value), 0) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as total_gift_value
                             FROM event_customers ec
                             INNER JOIN customers c ON ec.customer_id = c.id
                             LEFT JOIN invitation_status ist ON ec.invitation_status_id = ist.id
                             LEFT JOIN care_of_options co ON ec.care_of_id = co.id
                             LEFT JOIN users ua ON ec.attached_by = ua.id
-                            LEFT JOIN gifts g ON g.event_id = ec.event_id AND g.customer_id = ec.customer_id
-                            LEFT JOIN gift_types gt ON g.gift_type_id = gt.id
                             WHERE ec.event_id = :eventId
                             ORDER BY ec.created_at DESC";
             
@@ -391,11 +388,15 @@ class Event {
         if (isset($event['customers'])) {
             $formatted['customers'] = array_map(function($ec) use ($event) {
                 $customer = [
-                    'attachmentId' => $ec['id'],
+                    'id' => $ec['id'],
+                    'eventId' => $ec['event_id'],
                     'customerId' => $ec['customer_id'],
-                    'name' => $ec['customer_name'],
-                    'mobileNumber' => $ec['customer_mobile'],
-                    'address' => $ec['customer_address'] ?? null,
+                    'customer' => [
+                        'id' => $ec['customer_id'],
+                        'name' => $ec['customer_name'],
+                        'mobileNumber' => $ec['customer_mobile'] ?? null,
+                        'address' => $ec['customer_address'] ?? null
+                    ],
                     'invitationStatus' => [
                         'id' => (int)$ec['invitation_status_id'],
                         'name' => $ec['invitation_status_name'] ?? null
@@ -404,28 +405,15 @@ class Event {
                         'id' => (int)$ec['care_of_id'],
                         'name' => $ec['care_of_name'] ?? null
                     ] : null,
+                    'giftDirection' => $event['event_category'] === 'self_event' ? 'received' : 'given',
+                    'giftCount' => (int)($ec['gift_count'] ?? 0),
+                    'totalGiftValue' => (float)($ec['total_gift_value'] ?? 0),
                     'attachedBy' => [
                         'id' => $ec['attached_by'],
                         'name' => $ec['attached_by_name'] ?? null
                     ],
                     'createdAt' => $ec['created_at']
                 ];
-                
-                // Include gift info if available
-                if (!empty($ec['gift_id'])) {
-                    $customer['gift'] = [
-                        'id' => $ec['gift_id'],
-                        'giftType' => [
-                            'id' => (int)$ec['gift_type_id'],
-                            'name' => $ec['gift_type_name'] ?? null
-                        ],
-                        'value' => (float)$ec['gift_value'],
-                        'description' => $ec['gift_description'] ?? null,
-                        'direction' => $event['event_category'] === 'self_event' ? 'received' : 'given'
-                    ];
-                } else {
-                    $customer['gift'] = null;
-                }
                 
                 return $customer;
             }, $event['customers']);

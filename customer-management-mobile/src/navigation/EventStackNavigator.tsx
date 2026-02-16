@@ -7,12 +7,22 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography } from '../styles/theme';
 import { EventListScreen, EventDetailsScreen, CreateEventScreen, EditEventScreen } from '../screens/Events';
 import { CreateGiftScreen, EditGiftScreen } from '../screens/Gifts';
+import AttachCustomerScreen from '../screens/Events/AttachCustomerScreen';
+import EventCustomerGiftsScreen from '../screens/Events/EventCustomerGiftsScreen';
+import type { EventCategory } from '../types';
 
 export type EventStackParamList = {
   EventList: undefined;
   EventDetails: { eventId: string };
   CreateEvent: undefined;
   EditEvent: { eventId: string };
+  AttachCustomer: { eventId: string; eventCategory: EventCategory };
+  EventCustomerGifts: {
+    eventId: string;
+    customerId: string;
+    customerName: string;
+    eventCategory: EventCategory;
+  };
   CreateGift: { eventId: string; customerId: string };
   EditGift: { giftId: string; customerId: string };
 };
@@ -48,6 +58,16 @@ export default function EventStackNavigator() {
         name="EditEvent"
         component={EditEventScreen}
         options={{ title: 'Edit Event' }}
+      />
+      <Stack.Screen
+        name="AttachCustomer"
+        component={AttachCustomerScreen}
+        options={{ title: 'Attach Customer' }}
+      />
+      <Stack.Screen
+        name="EventCustomerGifts"
+        component={EventCustomerGiftsScreen}
+        options={{ title: 'Customer Gifts' }}
       />
       <Stack.Screen
         name="CreateGift"

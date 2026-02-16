@@ -13,6 +13,18 @@ export const giftService = {
   },
 
   /**
+   * Get gifts for a specific customer in a specific event
+   */
+  getEventCustomerGifts: async (
+    eventId: string,
+    customerId: string
+  ): Promise<ApiResponse<CustomerGiftsResponse>> => {
+    return await api.get<CustomerGiftsResponse>(
+      `${API_ENDPOINTS.GIFTS.CUSTOMER_GIFTS}?customerId=${customerId}&eventId=${eventId}`
+    );
+  },
+
+  /**
    * Create gift (requires eventId and customerId)
    */
   createGift: async (giftData: GiftInput): Promise<ApiResponse<Gift>> => {
