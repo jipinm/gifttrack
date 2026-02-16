@@ -10,6 +10,7 @@ customer-management-api/vendor/
 customer-management-api/composer.lock
 customer-management-api/logs/*.log
 customer-management-api/logs/*.txt
+customer-management-api/logs/*.json
 customer-management-api/cache/*
 !customer-management-api/cache/.gitkeep
 
