@@ -21,7 +21,7 @@ require_once __DIR__ . '/../../models/EventCustomer.php';
 require_once __DIR__ . '/../../models/Customer.php';
 
 // Handle POST request
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method !== 'POST') {
     Response::error('Method not allowed', 405);

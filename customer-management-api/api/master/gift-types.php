@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../middleware/role.php';
 require_once __DIR__ . '/../../utils/Cache.php';
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 $db = Database::getInstance()->getConnection();
 
 if ($method === 'GET') {

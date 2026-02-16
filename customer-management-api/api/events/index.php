@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Events List & Create Endpoint
  * GET /api/events - List all events (all authenticated users)
@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../utils/Paginator.php';
 
 global $authUser;
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method === 'GET') {
     // ==========================================

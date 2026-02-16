@@ -16,7 +16,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Gift.php';
 
 // Handle DELETE request
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method !== 'DELETE') {
     Response::error('Method not allowed', 405);

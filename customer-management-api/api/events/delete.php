@@ -13,7 +13,7 @@ requireSuperAdmin();
 
 global $authUser;
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method !== 'DELETE') {
     Response::methodNotAllowed();

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../models/EventCustomer.php';
 
 global $authUser;
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method !== 'DELETE') {
     Response::methodNotAllowed();

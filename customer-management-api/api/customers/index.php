@@ -20,7 +20,7 @@ require_once __DIR__ . '/../../utils/Paginator.php';
 require_once __DIR__ . '/../../models/Customer.php';
 
 // Handle different HTTP methods
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method === 'GET') {
     // GET - List all customers

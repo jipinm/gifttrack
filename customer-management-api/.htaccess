@@ -5,9 +5,13 @@
 # Disable automatic directory slash redirects for API routes
 DirectorySlash Off
 
+# Disable MultiViews to prevent content negotiation interfering with rewrites
+Options -MultiViews
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /gifttrack/customer-management-api/
+    # RewriteBase removed - Apache auto-detects from .htaccess location
+    # Works for both local (/gifttrack/customer-management-api/) and production (/)
     
     # ==================================================
     # Pass Authorization Header
@@ -21,7 +25,7 @@ DirectorySlash Off
     # Handle Preflight OPTIONS Requests
     # ==================================================
     RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=200,L]
+    RewriteRule ^(.*)$ - [R=200,L]
     
     # ==================================================
     # Test Route (for URL rewriting verification)
@@ -158,8 +162,8 @@ DirectorySlash Off
 # Security & Performance Settings
 # ==================================================
 
-# Disable directory listing
-Options -Indexes
+# Disable directory listing (MultiViews disabled above)
+Options -Indexes -MultiViews
 
 # Set default charset
 AddDefaultCharset UTF-8
@@ -167,7 +171,7 @@ AddDefaultCharset UTF-8
 # CORS Headers (Development - allow all origins)
 <IfModule mod_headers.c>
     Header always set Access-Control-Allow-Origin "*"
-    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
     Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     Header always set Access-Control-Max-Age "3600"
     

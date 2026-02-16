@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../models/Customer.php';
 
 global $authUser;
 
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method === 'GET') {
     // ==========================================

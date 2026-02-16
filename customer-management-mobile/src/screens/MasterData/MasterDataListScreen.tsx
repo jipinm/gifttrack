@@ -64,7 +64,12 @@ export default function MasterDataListScreen() {
         const response = await masterDataService.getAllByCategory(category);
 
         if (response.success && response.data) {
-          setItems(response.data);
+          // Validate response is an array of master data items
+          if (Array.isArray(response.data)) {
+            setItems(response.data);
+          } else {
+            setError('Invalid response format from server');
+          }
         } else {
           setError(response.message || 'Failed to load data');
         }

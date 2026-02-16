@@ -17,7 +17,7 @@ require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Gift.php';
 
 // Handle PUT request
-$method = $_SERVER['REQUEST_METHOD'];
+$method = strtoupper($_SERVER['REQUEST_METHOD']);
 
 if ($method !== 'PUT') {
     Response::error('Method not allowed', 405);
