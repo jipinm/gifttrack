@@ -166,11 +166,15 @@ CREATE TABLE IF NOT EXISTS `customers` (
   CONSTRAINT `customers_ibfk_4` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.customers: ~2 rows (approximately)
+-- Dumping data for table customer_management_db.customers: ~7 rows (approximately)
 INSERT INTO `customers` (`id`, `name`, `mobile_number`, `address`, `district_id`, `city_id`, `state_id`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
 	('2fd8ccbf-0ab1-11f1-830b-7008945b491c', 'Jinu abraham', '5582225824', 'Jinu villa', 13, 82, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:15', '2026-02-15 20:59:15'),
+	('3e944b96-0bf2-11f1-8d62-7008945b491c', 'Raj Kumar', '6652225421', 'Raj bhavan', 13, 82, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25'),
 	('4a36d642-0ab1-11f1-830b-7008945b491c', 'Sheelu shan', '5584447542', 'Sheelu shan villa', 6, 35, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:59', '2026-02-15 20:59:59'),
-	('98563f49-0b0b-11f1-830b-7008945b491c', 'Test customer', '4417774152', 'Test cust address', 14, 86, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 07:46:22', '2026-02-16 07:46:22');
+	('884fa82f-0bf2-11f1-8d62-7008945b491c', 'Tovino thomas', '9965552452', 'Tovi villa', 8, 51, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
+	('98563f49-0b0b-11f1-830b-7008945b491c', 'Test customer', '4417774152', 'Test cust address', 14, 86, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 07:46:22', '2026-02-16 07:46:22'),
+	('df621d07-0bf5-11f1-8d62-7008945b491c', 'Test add customer', '9965552451', 'Cust addr', 4, 24, 1, 'Notes test', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:43:24', '2026-02-17 11:43:24'),
+	('e338724b-0bd8-11f1-8d62-7008945b491c', 'Anil SK', '6695552417', 'Anil bhavan', 1, 1, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:15:55', '2026-02-17 08:15:55');
 
 -- Dumping structure for table customer_management_db.districts
 CREATE TABLE IF NOT EXISTS `districts` (
@@ -224,12 +228,17 @@ CREATE TABLE IF NOT EXISTS `event_customers` (
   CONSTRAINT `event_customers_ibfk_5` FOREIGN KEY (`attached_by`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.event_customers: ~4 rows (approximately)
+-- Dumping data for table customer_management_db.event_customers: ~9 rows (approximately)
 INSERT INTO `event_customers` (`id`, `event_id`, `customer_id`, `invitation_status_id`, `care_of_id`, `attached_by`, `created_at`, `updated_at`) VALUES
 	('4765690a-dc4a-79eb-fbcc-40b40d0367cb', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 1, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 05:42:58', '2026-02-16 05:42:58'),
 	('5ea53156-5a0d-5847-95a1-38559f13439e', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '98563f49-0b0b-11f1-830b-7008945b491c', 2, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 07:46:48', '2026-02-16 07:46:48'),
+	('6795dd68-44b5-15e1-136a-ae5347328263', 'cf385a9e-ac14-28b6-1cda-7bb86d8d4763', 'e338724b-0bd8-11f1-8d62-7008945b491c', 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:15:55', '2026-02-17 08:15:55'),
+	('8e023c64-b6cf-f7a6-d649-ea9e3f909fdb', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', 'df621d07-0bf5-11f1-8d62-7008945b491c', 1, 5, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:43:24', '2026-02-17 11:43:24'),
 	('963c7a72-798d-a947-b5dc-87cc63ab7a24', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '4a36d642-0ab1-11f1-830b-7008945b491c', 2, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 05:41:49', '2026-02-16 05:41:49'),
-	('a80cf4f1-ae9d-fce1-9d98-3ace8c500a07', '1efcb3e0-1f36-bcea-9acc-197eda45807f', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 2, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 05:39:07', '2026-02-16 05:39:07');
+	('a80cf4f1-ae9d-fce1-9d98-3ace8c500a07', '1efcb3e0-1f36-bcea-9acc-197eda45807f', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 2, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 05:39:07', '2026-02-16 05:39:07'),
+	('c0c23b38-a7c1-48ff-d05b-29d50a3d97d8', 'd5be1eca-cee6-1ed1-765a-90ee8b1a06f0', '884fa82f-0bf2-11f1-8d62-7008945b491c', 2, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
+	('da427bd4-74c1-e3ab-e082-bbbce3157808', '3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:14:27', '2026-02-17 08:14:27'),
+	('e5efe9e0-39b9-b61d-9c5b-330bf666cddf', '0688fed0-ed1c-3c08-2e16-cc0cd5a8a1d3', '3e944b96-0bf2-11f1-8d62-7008945b491c', 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25');
 
 -- Dumping structure for table customer_management_db.event_types
 CREATE TABLE IF NOT EXISTS `event_types` (
@@ -265,20 +274,26 @@ CREATE TABLE IF NOT EXISTS `events` (
   `created_by` varchar(36) NOT NULL COMMENT 'Super Admin who created the event',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_event_date` (`event_date`),
   KEY `idx_event_type` (`event_type_id`),
   KEY `idx_event_category` (`event_category`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_created_at` (`created_at`),
+  KEY `idx_events_deleted_at` (`deleted_at`),
   CONSTRAINT `events_ibfk_1` FOREIGN KEY (`event_type_id`) REFERENCES `event_types` (`id`),
   CONSTRAINT `events_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.events: ~2 rows (approximately)
-INSERT INTO `events` (`id`, `name`, `event_date`, `event_type_id`, `event_category`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
-	('1efcb3e0-1f36-bcea-9acc-197eda45807f', 'Friends marriage', '2029-02-15', 2, 'customer_event', NULL, '7e2ac996-01bb-11f1-9edc-7008945b491c', '2026-02-15 20:34:51', '2026-02-15 20:34:51'),
-	('5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', 'Saju Engagement', '2026-09-16', 3, 'self_event', NULL, '7e2ac996-01bb-11f1-9edc-7008945b491c', '2026-02-15 20:21:30', '2026-02-15 20:21:30');
+-- Dumping data for table customer_management_db.events: ~6 rows (approximately)
+INSERT INTO `events` (`id`, `name`, `event_date`, `event_type_id`, `event_category`, `notes`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
+	('0688fed0-ed1c-3c08-2e16-cc0cd5a8a1d3', 'Cust event test', '2029-02-17', 4, 'customer_event', 'Testing customer event flow', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25', NULL),
+	('1efcb3e0-1f36-bcea-9acc-197eda45807f', 'Friends marriage', '2029-02-15', 2, 'customer_event', NULL, '7e2ac996-01bb-11f1-9edc-7008945b491c', '2026-02-15 20:34:51', '2026-02-15 20:34:51', NULL),
+	('3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', 'New test event', '2026-05-17', 4, 'customer_event', NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:14:27', '2026-02-17 08:14:27', NULL),
+	('5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', 'Saju Engagement', '2026-09-16', 3, 'self_event', NULL, '7e2ac996-01bb-11f1-9edc-7008945b491c', '2026-02-15 20:21:30', '2026-02-15 20:21:30', NULL),
+	('cf385a9e-ac14-28b6-1cda-7bb86d8d4763', 'Second Test event', '2031-02-17', 6, 'customer_event', 'Anil house warming.  Kottayam', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:15:54', '2026-02-17 08:15:54', NULL),
+	('d5be1eca-cee6-1ed1-765a-90ee8b1a06f0', 'Another event test', '2026-06-17', 6, 'customer_event', 'House warming', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:19:29', '2026-02-17 11:19:29', NULL);
 
 -- Dumping structure for table customer_management_db.gift_types
 CREATE TABLE IF NOT EXISTS `gift_types` (
@@ -320,11 +335,16 @@ CREATE TABLE IF NOT EXISTS `gifts` (
   CONSTRAINT `gifts_ibfk_2` FOREIGN KEY (`gift_type_id`) REFERENCES `gift_types` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.gifts: ~2 rows (approximately)
+-- Dumping data for table customer_management_db.gifts: ~8 rows (approximately)
 INSERT INTO `gifts` (`id`, `event_id`, `customer_id`, `gift_type_id`, `value`, `description`, `created_at`, `updated_at`) VALUES
 	('036d6db0-9f91-af8f-bea6-de6c17c3645e', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 1, 5500.00, NULL, '2026-02-16 05:43:25', '2026-02-16 05:43:43'),
 	('11d51924-3104-0ae1-37da-ba00f662fc80', '1efcb3e0-1f36-bcea-9acc-197eda45807f', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 1, 3000.00, NULL, '2026-02-16 05:44:26', '2026-02-16 05:44:26'),
-	('8af1b717-add0-4329-909b-c73e25d8cc4c', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '4a36d642-0ab1-11f1-830b-7008945b491c', 2, 2000.00, 'Dress', '2026-02-16 05:44:00', '2026-02-16 05:44:00');
+	('2e952bae-428f-6689-83df-551897d33dee', '3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 3, 2000.00, 'Purchase voucher', '2026-02-17 08:14:27', '2026-02-17 08:14:27'),
+	('571690f2-dd7a-ce2a-46ec-eac4aeb69466', 'd5be1eca-cee6-1ed1-765a-90ee8b1a06f0', '884fa82f-0bf2-11f1-8d62-7008945b491c', 2, 9999.00, 'Dress', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
+	('7e71f124-f3e5-4045-ad3a-57abb05823c8', '0688fed0-ed1c-3c08-2e16-cc0cd5a8a1d3', '3e944b96-0bf2-11f1-8d62-7008945b491c', 1, 2599.00, 'Watch', '2026-02-17 11:17:26', '2026-02-17 11:17:26'),
+	('8af1b717-add0-4329-909b-c73e25d8cc4c', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '4a36d642-0ab1-11f1-830b-7008945b491c', 2, 2000.00, 'Dress', '2026-02-16 05:44:00', '2026-02-16 05:44:00'),
+	('9a8a1406-31b3-0c31-4346-f02a9acf5687', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', 'df621d07-0bf5-11f1-8d62-7008945b491c', 2, 12345.00, 'Suit', '2026-02-17 11:43:24', '2026-02-17 11:43:24'),
+	('f0c9f1c2-ed4c-6dd0-6c0d-3dfbe397ba83', 'cf385a9e-ac14-28b6-1cda-7bb86d8d4763', 'e338724b-0bd8-11f1-8d62-7008945b491c', 1, 5000.00, NULL, '2026-02-17 08:15:55', '2026-02-17 08:15:55');
 
 -- Dumping structure for table customer_management_db.invitation_status
 CREATE TABLE IF NOT EXISTS `invitation_status` (

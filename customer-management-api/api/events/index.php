@@ -77,11 +77,10 @@ if ($method === 'GET') {
 
 } elseif ($method === 'POST') {
     // ==========================================
-    // POST: Create new event (Super Admin only)
+    // POST: Create new event (Admin & Super Admin)
     // ==========================================
     
-    require_once __DIR__ . '/../../middleware/role.php';
-    requireSuperAdmin();
+    // All authenticated users (admin or superadmin) can create events
     
     $data = json_decode(file_get_contents('php://input'), true);
     

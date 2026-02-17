@@ -1,14 +1,14 @@
 <?php
 /**
  * Event Update Endpoint
- * PUT /api/events/update?id=X - Update event (Super Admin only)
+ * PUT /api/events/update?id=X - Update event
+ * - Super Admin can update any event
+ * - Admin can update only events they created
  */
 
 require_once __DIR__ . '/../../bootstrap.php';
-require_once __DIR__ . '/../../middleware/role.php';
+require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Event.php';
-
-requireSuperAdmin();
 
 global $authUser;
 
@@ -31,6 +31,14 @@ $eventModel = new Event();
 if (!$eventModel->exists($id)) {
     Response::notFound('Event not found');
     exit;
+}
+
+// Ownership check: Admin can only update their own events
+if ($authUser['role'] !== 'superadmin') {
+    $createdBy = $eventModel->getCreatedBy($id);
+    if ($createdBy !== $authUser['id']) {
+        Response::forbidden('You can only edit events you created');
+    }
 }
 
 $data = json_decode(file_get_contents('php://input'), true);

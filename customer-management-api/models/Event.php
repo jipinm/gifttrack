@@ -3,9 +3,10 @@
  * Event Model
  * Handles database operations for standalone events
  * 
- * Events are managed by Super Admin only.
+ * Events can be managed by Super Admin (all events) or Admin (own events only).
  * Events can be of category: self_event or customer_event
  * Customers are attached to events via event_customers pivot table
+ * Supports soft delete via deleted_at column
  */
 
 class Event {
@@ -24,7 +25,7 @@ class Event {
      */
     public function getAll($filters = [], $paginator = null) {
         try {
-            $whereClause = "WHERE 1=1";
+            $whereClause = "WHERE e.deleted_at IS NULL";
             $params = [];
             
             // Search filter (event name)
@@ -122,7 +123,7 @@ class Event {
                     FROM events e
                     LEFT JOIN event_types et ON e.event_type_id = et.id
                     LEFT JOIN users u ON e.created_by = u.id
-                    WHERE e.id = :id LIMIT 1";
+                    WHERE e.id = :id AND e.deleted_at IS NULL LIMIT 1";
             
             $stmt = $this->connection->prepare($sql);
             $stmt->execute(['id' => $id]);
@@ -248,19 +249,19 @@ class Event {
     }
     
     /**
-     * Delete an event (cascades to event_customers and gifts)
+     * Soft delete an event (sets deleted_at timestamp)
      * 
      * @param string $id Event UUID
      * @return bool
      */
     public function delete($id) {
         try {
-            $sql = "DELETE FROM events WHERE id = :id";
+            $sql = "UPDATE events SET deleted_at = NOW() WHERE id = :id AND deleted_at IS NULL";
             $stmt = $this->connection->prepare($sql);
             $stmt->execute(['id' => $id]);
             return $stmt->rowCount() > 0;
         } catch (PDOException $e) {
-            error_log("Error deleting event: " . $e->getMessage());
+            error_log("Error soft-deleting event: " . $e->getMessage());
             return false;
         }
     }
@@ -273,7 +274,7 @@ class Event {
      */
     public function exists($id) {
         try {
-            $sql = "SELECT COUNT(*) as count FROM events WHERE id = :id";
+            $sql = "SELECT COUNT(*) as count FROM events WHERE id = :id AND deleted_at IS NULL";
             $stmt = $this->connection->prepare($sql);
             $stmt->execute(['id' => $id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -292,13 +293,32 @@ class Event {
      */
     public function getCategory($id) {
         try {
-            $sql = "SELECT event_category FROM events WHERE id = :id";
+            $sql = "SELECT event_category FROM events WHERE id = :id AND deleted_at IS NULL";
             $stmt = $this->connection->prepare($sql);
             $stmt->execute(['id' => $id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result ? $result['event_category'] : null;
         } catch (PDOException $e) {
             error_log("Error getting event category: " . $e->getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Get the created_by user ID for an event
+     * 
+     * @param string $id Event UUID
+     * @return string|null User UUID who created the event
+     */
+    public function getCreatedBy($id) {
+        try {
+            $sql = "SELECT created_by FROM events WHERE id = :id AND deleted_at IS NULL";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['created_by'] : null;
+        } catch (PDOException $e) {
+            error_log("Error getting event creator: " . $e->getMessage());
             return null;
         }
     }
@@ -317,7 +337,7 @@ class Event {
                         (SELECT COUNT(*) FROM event_customers ec WHERE ec.event_id = e.id) as customer_count
                     FROM events e
                     LEFT JOIN event_types et ON e.event_type_id = et.id
-                    WHERE e.event_date = :eventDate
+                    WHERE e.event_date = :eventDate AND e.deleted_at IS NULL
                     ORDER BY e.name ASC";
             
             $stmt = $this->connection->prepare($sql);

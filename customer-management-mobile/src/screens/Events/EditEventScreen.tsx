@@ -1,6 +1,8 @@
 /**
- * Edit Event Screen (SuperAdmin only)
- * Form for editing a standalone event
+ * Edit Event Screen
+ * Form for editing an event
+ * - SuperAdmin can edit any event
+ * - Admin can edit only events they created
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Alert, Platform } from 'react-native';

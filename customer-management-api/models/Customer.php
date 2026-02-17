@@ -25,6 +25,36 @@ class Customer {
             // Build WHERE clause and params
             $whereClause = "WHERE 1=1";
             $params = [];
+            $joins = "";
+            
+            // Event-based filter: JOIN event_customers when eventId is provided
+            if (!empty($filters['eventId'])) {
+                $joins .= " INNER JOIN event_customers ec ON ec.customer_id = c.id AND ec.event_id = :eventId";
+                $params['eventId'] = $filters['eventId'];
+                
+                // Care Of filter (only meaningful with eventId)
+                if (!empty($filters['careOfId'])) {
+                    $whereClause .= " AND ec.care_of_id = :careOfId";
+                    $params['careOfId'] = $filters['careOfId'];
+                }
+                
+                // Invitation Status filter (only meaningful with eventId)
+                if (!empty($filters['invitationStatusId'])) {
+                    $whereClause .= " AND ec.invitation_status_id = :invitationStatusId";
+                    $params['invitationStatusId'] = $filters['invitationStatusId'];
+                }
+                
+                // Gift status filter (only meaningful with eventId)
+                if (!empty($filters['giftStatus'])) {
+                    if ($filters['giftStatus'] === 'gifted') {
+                        $whereClause .= " AND EXISTS (SELECT 1 FROM gifts g2 WHERE g2.customer_id = c.id AND g2.event_id = :giftEventId)";
+                        $params['giftEventId'] = $filters['eventId'];
+                    } elseif ($filters['giftStatus'] === 'not_gifted') {
+                        $whereClause .= " AND NOT EXISTS (SELECT 1 FROM gifts g2 WHERE g2.customer_id = c.id AND g2.event_id = :giftEventId)";
+                        $params['giftEventId'] = $filters['eventId'];
+                    }
+                }
+            }
             
             // Filter by admin who created the customer (admin-scoped access)
             if (!empty($filters['createdBy'])) {
@@ -53,7 +83,7 @@ class Customer {
             
             // If paginator is provided, get total count first
             if ($paginator) {
-                $countSql = "SELECT COUNT(*) as total FROM customers c " . $whereClause;
+                $countSql = "SELECT COUNT(DISTINCT c.id) as total FROM customers c " . $joins . " " . $whereClause;
                 $countStmt = $this->connection->prepare($countSql);
                 $countStmt->execute($params);
                 $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -69,13 +99,15 @@ class Customer {
                         u.name as created_by_name,
                         (SELECT COUNT(*) FROM gifts g WHERE g.customer_id = c.id) as gift_count,
                         COALESCE((SELECT SUM(value) FROM gifts g WHERE g.customer_id = c.id), 0) as total_gift_value,
-                        (SELECT COUNT(*) FROM event_customers ec WHERE ec.customer_id = c.id) as event_count
+                        (SELECT COUNT(*) FROM event_customers ec2 WHERE ec2.customer_id = c.id) as event_count
                     FROM customers c
+                    " . $joins . "
                     LEFT JOIN states s ON c.state_id = s.id
                     LEFT JOIN districts d ON c.district_id = d.id
                     LEFT JOIN cities ct ON c.city_id = ct.id
                     LEFT JOIN users u ON c.created_by = u.id
                     " . $whereClause . "
+                    GROUP BY c.id
                     ORDER BY c.created_at DESC";
             
             // Add pagination if provided

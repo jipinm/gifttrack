@@ -22,6 +22,10 @@ export const customerService = {
       if (filters.stateId) params.append('stateId', filters.stateId.toString());
       if (filters.districtId) params.append('districtId', filters.districtId.toString());
       if (filters.cityId) params.append('cityId', filters.cityId.toString());
+      if (filters.eventId) params.append('eventId', filters.eventId);
+      if (filters.careOfId) params.append('careOfId', filters.careOfId.toString());
+      if (filters.invitationStatusId) params.append('invitationStatusId', filters.invitationStatusId.toString());
+      if (filters.giftStatus) params.append('giftStatus', filters.giftStatus);
       if (filters.page) params.append('page', filters.page.toString());
       if (filters.perPage) params.append('perPage', filters.perPage.toString());
     }

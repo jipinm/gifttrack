@@ -1,6 +1,8 @@
 /**
  * Create Customer Screen
- * Form for creating a new customer
+ * Form for creating a new customer with optional event connection.
+ * After creating the customer, if an event is selected, the customer
+ * is automatically attached to that event.
  */
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
@@ -9,17 +11,27 @@ import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import { customerService } from '../../services/customerService';
+import { eventService } from '../../services/eventService';
+import { giftService } from '../../services/giftService';
 import {
   StateDropdown,
   DistrictDropdown,
   CityDropdown,
+  InvitationStatusDropdown,
+  CareOfDropdown,
+  GiftTypeDropdown,
 } from '../../components/Dropdowns';
-import { colors, spacing } from '../../styles/theme';
+import EventCardSelector from '../../components/EventCardSelector';
+import { colors, spacing, typography } from '../../styles/theme';
 import type {
   CustomerInput,
   State,
   District,
   City,
+  Event,
+  InvitationStatus,
+  CareOfOption,
+  GiftType,
 } from '../../types';
 
 interface FormData {
@@ -41,6 +53,19 @@ export default function CreateCustomerScreen() {
   // Validation errors for dropdowns
   const [districtError, setDistrictError] = useState<string | undefined>();
   const [cityError, setCityError] = useState<string | undefined>();
+
+  // Event connection state (optional)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [invitationStatusId, setInvitationStatusId] = useState<number | null>(null);
+  const [careOfId, setCareOfId] = useState<number | null>(null);
+  const [invitationError, setInvitationError] = useState<string | undefined>();
+  const [careOfError, setCareOfError] = useState<string | undefined>();
+  const isSelfEvent = selectedEvent?.eventCategory === 'self_event';
+
+  // Gift state (optional, shown after invitation status is selected)
+  const [giftTypeId, setGiftTypeId] = useState<number | null>(null);
+  const [giftValue, setGiftValue] = useState('');
+  const [giftDescription, setGiftDescription] = useState('');
 
   const {
     control,
@@ -92,10 +117,42 @@ export default function CreateCustomerScreen() {
     setCityError(undefined);
   }, []);
 
+  // Event connection handlers
+  const handleEventSelect = useCallback((event: Event | null) => {
+    setSelectedEvent(event);
+    // Reset attachment fields when event changes
+    if (!event) {
+      setInvitationStatusId(null);
+      setCareOfId(null);
+      setInvitationError(undefined);
+      setCareOfError(undefined);
+      setGiftTypeId(null);
+      setGiftValue('');
+      setGiftDescription('');
+    }
+  }, []);
+
+  const handleInvitationStatusSelect = useCallback(
+    (item: InvitationStatus | null) => {
+      setInvitationStatusId(item?.id ?? null);
+      setInvitationError(undefined);
+    },
+    []
+  );
+
+  const handleCareOfSelect = useCallback((item: CareOfOption | null) => {
+    setCareOfId(item?.id ?? null);
+    setCareOfError(undefined);
+  }, []);
+
+  const handleGiftTypeSelect = useCallback((giftType: GiftType | null) => {
+    setGiftTypeId(giftType?.id ?? null);
+  }, []);
+
   // Submit handler
   const onSubmit = useCallback(
     async (data: FormData) => {
-      // Validate dropdowns
+      // Validate location dropdowns
       let hasError = false;
       if (!districtId) {
         setDistrictError('District is required');
@@ -105,6 +162,19 @@ export default function CreateCustomerScreen() {
         setCityError('City is required');
         hasError = true;
       }
+
+      // Validate event connection fields (only when an event is selected)
+      if (selectedEvent) {
+        if (!invitationStatusId) {
+          setInvitationError('Invitation status is required');
+          hasError = true;
+        }
+        if (isSelfEvent && !careOfId) {
+          setCareOfError('Care Of is required for Self Event');
+          hasError = true;
+        }
+      }
+
       if (hasError) return;
 
       try {
@@ -123,23 +193,106 @@ export default function CreateCustomerScreen() {
         const response = await customerService.create(customerData);
 
         if (response.success) {
-          // Reset form
+          const newCustomer = response.data as any;
+
+          // If an event is selected, attach the customer to it
+          if (selectedEvent && newCustomer?.id) {
+            try {
+              const attachResponse = await eventService.attachCustomer({
+                eventId: selectedEvent.id,
+                customerId: newCustomer.id,
+                invitationStatusId: invitationStatusId!,
+                careOfId: careOfId ?? undefined,
+              });
+
+              if (!attachResponse.success) {
+                // Customer created but attach failed — inform the user
+                Alert.alert(
+                  'Partial Success',
+                  `Customer created, but failed to link to event: ${attachResponse.message || 'Unknown error'}`,
+                  [
+                    {
+                      text: 'OK',
+                      onPress: () =>
+                        navigation.dispatch(
+                          CommonActions.navigate({ name: 'CustomersTab' })
+                        ),
+                    },
+                  ]
+                );
+                return;
+              }
+
+              // If gift value is entered, create gift after successful attachment
+              if (giftValue && parseFloat(giftValue) > 0 && giftTypeId) {
+                try {
+                  await giftService.createGift({
+                    eventId: selectedEvent.id,
+                    customerId: newCustomer.id,
+                    giftTypeId,
+                    value: parseFloat(giftValue),
+                    description: giftDescription.trim() || undefined,
+                  });
+                } catch {
+                  // Gift creation failed but customer + attachment succeeded
+                  Alert.alert(
+                    'Partial Success',
+                    'Customer created and linked to event, but gift creation failed.',
+                    [
+                      {
+                        text: 'OK',
+                        onPress: () =>
+                          navigation.dispatch(
+                            CommonActions.navigate({ name: 'CustomersTab' })
+                          ),
+                      },
+                    ]
+                  );
+                  return;
+                }
+              }
+            } catch (attachErr) {
+              Alert.alert(
+                'Partial Success',
+                `Customer created, but failed to link to event: ${attachErr instanceof Error ? attachErr.message : 'Unknown error'}`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () =>
+                      navigation.dispatch(
+                        CommonActions.navigate({ name: 'CustomersTab' })
+                      ),
+                  },
+                ]
+              );
+              return;
+            }
+          }
+
+          // Full success — reset form and navigate
           reset();
           setStateId(1);
           setDistrictId(null);
           setCityId(null);
-          
-          Alert.alert('Success', 'Customer created successfully', [
-            { 
-              text: 'OK', 
+          setSelectedEvent(null);
+          setInvitationStatusId(null);
+          setCareOfId(null);
+          setGiftTypeId(null);
+          setGiftValue('');
+          setGiftDescription('');
+
+          const successMsg = selectedEvent
+            ? 'Customer created and linked to event successfully'
+            : 'Customer created successfully';
+
+          Alert.alert('Success', successMsg, [
+            {
+              text: 'OK',
               onPress: () => {
-                // Navigate to CustomersTab
                 navigation.dispatch(
-                  CommonActions.navigate({
-                    name: 'CustomersTab',
-                  })
+                  CommonActions.navigate({ name: 'CustomersTab' })
                 );
-              } 
+              },
             },
           ]);
         } else {
@@ -151,7 +304,7 @@ export default function CreateCustomerScreen() {
         setIsSubmitting(false);
       }
     },
-    [stateId, districtId, cityId, navigation, reset]
+    [stateId, districtId, cityId, selectedEvent, invitationStatusId, careOfId, isSelfEvent, giftTypeId, giftValue, giftDescription, navigation, reset]
   );
 
   return (
@@ -289,6 +442,79 @@ export default function CreateCustomerScreen() {
           )}
         />
 
+        {/* Link to Event (Optional) */}
+        <Text style={styles.sectionTitle}>Link to Event (Optional)</Text>
+        <Text style={styles.sectionHint}>
+          Select an event to automatically connect this customer after creation.
+        </Text>
+
+        <EventCardSelector
+          selectedEvent={selectedEvent}
+          onSelectEvent={handleEventSelect}
+          disabled={isSubmitting}
+        />
+
+        {/* Invitation Status & Care Of (shown when event is selected) */}
+        {selectedEvent && (
+          <View style={styles.eventFieldsContainer}>
+            <InvitationStatusDropdown
+              value={invitationStatusId}
+              onSelect={handleInvitationStatusSelect}
+              label="Invitation Status"
+              required
+              error={invitationError}
+              disabled={isSubmitting}
+            />
+
+            {isSelfEvent && (
+              <CareOfDropdown
+                value={careOfId}
+                onSelect={handleCareOfSelect}
+                label="Care Of"
+                required
+                error={careOfError}
+                disabled={isSubmitting}
+              />
+            )}
+
+          </View>
+        )}
+
+        {/* Gift Section (Optional) — shown when an event is selected */}
+        {selectedEvent && (
+          <View style={styles.giftSection}>
+            <Text style={styles.giftSectionTitle}>🎁 Add Gift (Optional)</Text>
+
+            <GiftTypeDropdown
+              value={giftTypeId}
+              onSelect={handleGiftTypeSelect}
+              label="Gift Type"
+              disabled={isSubmitting}
+            />
+
+            <TextInput
+              label="Gift Value"
+              value={giftValue}
+              onChangeText={setGiftValue}
+              mode="outlined"
+              keyboardType="numeric"
+              disabled={isSubmitting}
+              style={styles.giftInput}
+            />
+
+            <TextInput
+              label="Gift Description (Optional)"
+              value={giftDescription}
+              onChangeText={setGiftDescription}
+              mode="outlined"
+              multiline
+              numberOfLines={2}
+              disabled={isSubmitting}
+              style={styles.giftInput}
+            />
+          </View>
+        )}
+
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <Button
@@ -332,6 +558,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.sm,
   },
+  sectionHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+  eventFieldsContainer: {
+    marginTop: spacing.md,
+  },
   buttonContainer: {
     flexDirection: 'row',
     marginTop: spacing.xl,
@@ -344,5 +578,21 @@ const styles = StyleSheet.create({
   submitButton: {
     flex: 1,
     backgroundColor: colors.primary,
+  },
+  giftSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  giftSectionTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  giftInput: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
   },
 });

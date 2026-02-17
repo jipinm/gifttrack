@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import {
   Text,
+  TextInput,
   Searchbar,
   ActivityIndicator,
   Button,
@@ -28,9 +29,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { customerService } from '../../services/customerService';
 import { eventService } from '../../services/eventService';
-import { InvitationStatusDropdown, CareOfDropdown } from '../../components/Dropdowns';
+import { giftService } from '../../services/giftService';
+import { InvitationStatusDropdown, CareOfDropdown, GiftTypeDropdown } from '../../components/Dropdowns';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import type { Customer, InvitationStatus, CareOfOption } from '../../types';
+import type { Customer, InvitationStatus, CareOfOption, GiftType } from '../../types';
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
 
 type NavigationProp = NativeStackNavigationProp<EventStackParamList, 'AttachCustomer'>;
@@ -54,6 +56,11 @@ export default function AttachCustomerScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Gift state (optional)
+  const [giftTypeId, setGiftTypeId] = useState<number | null>(null);
+  const [giftValue, setGiftValue] = useState('');
+  const [giftDescription, setGiftDescription] = useState('');
 
   // Search customers with debounce
   const searchCustomers = useCallback(
@@ -122,6 +129,10 @@ export default function AttachCustomerScreen() {
     setCareOfError(undefined);
   }, []);
 
+  const handleGiftTypeSelect = useCallback((giftType: GiftType | null) => {
+    setGiftTypeId(giftType?.id ?? null);
+  }, []);
+
   // Select customer
   const handleSelectCustomer = useCallback((customer: Customer) => {
     setSelectedCustomer(customer);
@@ -130,6 +141,9 @@ export default function AttachCustomerScreen() {
   // Clear selection
   const handleClearSelection = useCallback(() => {
     setSelectedCustomer(null);
+    setGiftTypeId(null);
+    setGiftValue('');
+    setGiftDescription('');
   }, []);
 
   // Submit
@@ -157,9 +171,32 @@ export default function AttachCustomerScreen() {
       });
 
       if (response.success) {
-        Alert.alert('Success', 'Customer attached successfully', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        // If gift value is entered, create gift after successful attachment
+        if (giftValue && parseFloat(giftValue) > 0 && giftTypeId) {
+          try {
+            await giftService.createGift({
+              eventId,
+              customerId: selectedCustomer.id,
+              giftTypeId,
+              value: parseFloat(giftValue),
+              description: giftDescription.trim() || undefined,
+            });
+            Alert.alert('Success', 'Customer attached and gift added successfully', [
+              { text: 'OK', onPress: () => navigation.goBack() },
+            ]);
+          } catch {
+            // Gift creation failed but attachment succeeded
+            Alert.alert(
+              'Partial Success',
+              'Customer attached successfully, but gift creation failed.',
+              [{ text: 'OK', onPress: () => navigation.goBack() }]
+            );
+          }
+        } else {
+          Alert.alert('Success', 'Customer attached successfully', [
+            { text: 'OK', onPress: () => navigation.goBack() },
+          ]);
+        }
       } else {
         Alert.alert('Error', response.message || 'Failed to attach customer');
       }
@@ -177,6 +214,9 @@ export default function AttachCustomerScreen() {
     invitationStatusId,
     careOfId,
     isSelfEvent,
+    giftTypeId,
+    giftValue,
+    giftDescription,
     navigation,
   ]);
 
@@ -285,6 +325,42 @@ export default function AttachCustomerScreen() {
               error={careOfError}
               disabled={isSubmitting}
             />
+          )}
+
+          {/* Gift Section (Optional) — shown after invitation status */}
+          {invitationStatusId && (
+            <View style={styles.giftSection}>
+              <Divider style={styles.giftDivider} />
+              <Text style={styles.giftSectionTitle}>🎁 Add Gift (Optional)</Text>
+
+              <GiftTypeDropdown
+                value={giftTypeId}
+                onSelect={handleGiftTypeSelect}
+                label="Gift Type"
+                disabled={isSubmitting}
+              />
+
+              <TextInput
+                label="Gift Value"
+                value={giftValue}
+                onChangeText={setGiftValue}
+                mode="outlined"
+                keyboardType="numeric"
+                disabled={isSubmitting}
+                style={styles.giftInput}
+              />
+
+              <TextInput
+                label="Gift Description (Optional)"
+                value={giftDescription}
+                onChangeText={setGiftDescription}
+                mode="outlined"
+                multiline
+                numberOfLines={2}
+                disabled={isSubmitting}
+                style={styles.giftInput}
+              />
+            </View>
           )}
 
           {/* Action Buttons */}
@@ -428,5 +504,21 @@ const styles = StyleSheet.create({
   submitButton: {
     flex: 1,
     backgroundColor: colors.primary,
+  },
+  giftSection: {
+    marginTop: spacing.sm,
+  },
+  giftDivider: {
+    marginVertical: spacing.md,
+  },
+  giftSectionTitle: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  giftInput: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.surface,
   },
 });

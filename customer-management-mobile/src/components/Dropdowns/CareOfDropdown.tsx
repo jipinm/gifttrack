@@ -20,6 +20,7 @@ interface CareOfDropdownProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  autoSelectDefault?: boolean;
 }
 
 export default function CareOfDropdown({
@@ -30,6 +31,7 @@ export default function CareOfDropdown({
   error,
   disabled = false,
   required = false,
+  autoSelectDefault = true,
 }: CareOfDropdownProps) {
   const { masterData, isLoading } = useMasterData();
   const [modalVisible, setModalVisible] = useState(false);
@@ -40,14 +42,14 @@ export default function CareOfDropdown({
   // Auto-select default when value is null and items are loaded
   const hasAutoSelected = useRef(false);
   useEffect(() => {
-    if (value === null && !hasAutoSelected.current && careOfOptions.length > 0) {
+    if (autoSelectDefault && value === null && !hasAutoSelected.current && careOfOptions.length > 0) {
       const defaultItem = careOfOptions.find((item) => item.isDefault);
       if (defaultItem) {
         hasAutoSelected.current = true;
         onSelect(defaultItem);
       }
     }
-  }, [value, careOfOptions, onSelect]);
+  }, [autoSelectDefault, value, careOfOptions, onSelect]);
 
   const selectedOption = useMemo(
     () => careOfOptions.find((opt) => opt.id === value) ?? null,

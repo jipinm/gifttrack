@@ -20,6 +20,7 @@ interface InvitationStatusDropdownProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  autoSelectDefault?: boolean;
 }
 
 export default function InvitationStatusDropdown({
@@ -30,6 +31,7 @@ export default function InvitationStatusDropdown({
   error,
   disabled = false,
   required = false,
+  autoSelectDefault = true,
 }: InvitationStatusDropdownProps) {
   const { masterData, isLoading } = useMasterData();
   const [modalVisible, setModalVisible] = useState(false);
@@ -40,14 +42,14 @@ export default function InvitationStatusDropdown({
   // Auto-select default when value is null and items are loaded
   const hasAutoSelected = useRef(false);
   useEffect(() => {
-    if (value === null && !hasAutoSelected.current && invitationStatuses.length > 0) {
+    if (autoSelectDefault && value === null && !hasAutoSelected.current && invitationStatuses.length > 0) {
       const defaultItem = invitationStatuses.find((item) => item.isDefault);
       if (defaultItem) {
         hasAutoSelected.current = true;
         onSelect(defaultItem);
       }
     }
-  }, [value, invitationStatuses, onSelect]);
+  }, [autoSelectDefault, value, invitationStatuses, onSelect]);
 
   const selectedStatus = useMemo(
     () => invitationStatuses.find((status) => status.id === value) ?? null,

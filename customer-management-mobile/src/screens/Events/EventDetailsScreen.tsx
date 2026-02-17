@@ -3,7 +3,7 @@
  * Shows event info with attached customers and their gifts
  * SuperAdmin can edit/delete event, all users can manage attachments
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, Alert, TouchableOpacity, RefreshControl } from 'react-native';
 import {
   Text,
@@ -13,6 +13,7 @@ import {
   IconButton,
   Dialog,
   Portal,
+  Searchbar,
 } from 'react-native-paper';
 import { HeaderIconButton, HeaderButtonGroup } from '../../components/Common/HeaderButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -31,7 +32,7 @@ export default function EventDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user } = useAuth();
   const isSuperAdminValue = isSuperAdmin();
 
   // State
@@ -43,6 +44,19 @@ export default function EventDetailsScreen() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [detachTarget, setDetachTarget] = useState<EventCustomer | null>(null);
+
+  // Customer search filter (Self Events only)
+  const [customerFilter, setCustomerFilter] = useState('');
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerFilter.trim()) return customers;
+    const q = customerFilter.trim().toLowerCase();
+    return customers.filter(
+      (c) =>
+        (c.customer?.name || '').toLowerCase().includes(q) ||
+        (c.customer?.mobileNumber || '').includes(q)
+    );
+  }, [customers, customerFilter]);
 
   /**
    * Normalise the customers array from either the show-endpoint format
@@ -226,9 +240,10 @@ export default function EventDetailsScreen() {
     [navigation, eventId]
   );
 
-  // Set header options
+  // Set header options — show edit/delete for SuperAdmin (any event) or Admin (own events)
   useEffect(() => {
-    if (isSuperAdminValue) {
+    const canManage = isSuperAdminValue || (event && user && event.createdBy?.id === user.id);
+    if (canManage) {
       navigation.setOptions({
         headerRight: () => (
           <HeaderButtonGroup>
@@ -244,8 +259,10 @@ export default function EventDetailsScreen() {
           </HeaderButtonGroup>
         ),
       });
+    } else {
+      navigation.setOptions({ headerRight: undefined });
     }
-  }, [navigation, isSuperAdminValue, eventId]);
+  }, [navigation, isSuperAdminValue, eventId, event, user]);
 
   // Loading
   if (isLoading && !isRefreshing) {
@@ -365,8 +382,19 @@ export default function EventDetailsScreen() {
             )}
           </View>
 
-          {customers.length > 0 ? (
-            customers.map((attachment, index) => (
+          {/* Search filter for Self Events with multiple customers */}
+          {event.eventCategory === 'self_event' && customers.length > 2 && (
+            <Searchbar
+              placeholder="Filter by name or mobile..."
+              value={customerFilter}
+              onChangeText={setCustomerFilter}
+              style={styles.customerSearchBar}
+              inputStyle={styles.customerSearchInput}
+            />
+          )}
+
+          {filteredCustomers.length > 0 ? (
+            filteredCustomers.map((attachment, index) => (
               <View key={attachment.id}>
                 {index > 0 && <Divider style={styles.itemDivider} />}
                 <View style={styles.customerItem}>
@@ -428,6 +456,10 @@ export default function EventDetailsScreen() {
                 </View>
               </View>
             ))
+          ) : customerFilter.trim() ? (
+            <View style={styles.emptyCustomers}>
+              <Text style={styles.emptyText}>No matching customers found</Text>
+            </View>
           ) : (
             <View style={styles.emptyCustomers}>
               <Text style={styles.emptyText}>No customers attached yet</Text>
@@ -626,6 +658,17 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.lg,
     fontWeight: '600',
     color: colors.textPrimary,
+  },
+  customerSearchBar: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    elevation: 0,
+    marginBottom: spacing.sm,
+    height: 40,
+  },
+  customerSearchInput: {
+    fontSize: typography.fontSize.sm,
+    minHeight: 0,
   },
   itemDivider: {
     marginVertical: spacing.xs,

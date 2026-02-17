@@ -4,7 +4,7 @@
  * All users can view events. SuperAdmin can create/edit/delete.
  */
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { Text, FAB, ActivityIndicator, Chip, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -219,9 +219,10 @@ export default function EventListScreen() {
   const renderEventCard = useCallback(
     ({ item }: { item: Event }) => (
       <View style={styles.eventCard}>
-        <View
+        <TouchableOpacity
           style={styles.eventCardTouchable}
-          onTouchEnd={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          activeOpacity={0.7}
         >
           <View style={styles.eventCardHeader}>
             <View style={styles.eventCardTitle}>
@@ -264,7 +265,7 @@ export default function EventListScreen() {
               {item.giftDirection === 'received' ? '📥 Gifts Received' : '📤 Gifts Given'}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
     ),
     [navigation]
@@ -288,9 +289,7 @@ export default function EventListScreen() {
       <Text style={styles.emptyIcon}>📅</Text>
       <Text style={styles.emptyText}>No events found</Text>
       <Text style={styles.emptyHint}>
-        {isSuperAdminValue
-          ? 'Tap + to create a new event'
-          : 'Events will appear here once created by Super Admin'}
+        Tap + to create a new event
       </Text>
     </View>
   );
@@ -377,14 +376,12 @@ export default function EventListScreen() {
         />
       )}
 
-      {/* FAB for SuperAdmin */}
-      {isSuperAdminValue && (
-        <FAB
-          icon="plus"
-          style={styles.fab}
-          onPress={() => navigation.navigate('CreateEvent')}
-        />
-      )}
+      {/* FAB for adding events (Admin and SuperAdmin) */}
+      <FAB
+        icon="plus"
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreateEvent')}
+      />
     </View>
   );
 }

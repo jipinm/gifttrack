@@ -1,15 +1,15 @@
 <?php
 /**
  * Event Delete Endpoint
- * DELETE /api/events/delete?id=X - Delete event (Super Admin only)
- * Cascade deletes: event_customers and gifts
+ * DELETE /api/events/delete?id=X - Soft delete event
+ * - Super Admin can delete any event
+ * - Admin can delete only events they created
+ * Sets deleted_at timestamp instead of hard delete
  */
 
 require_once __DIR__ . '/../../bootstrap.php';
-require_once __DIR__ . '/../../middleware/role.php';
+require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../models/Event.php';
-
-requireSuperAdmin();
 
 global $authUser;
 
@@ -32,6 +32,14 @@ $eventModel = new Event();
 if (!$eventModel->exists($id)) {
     Response::notFound('Event not found');
     exit;
+}
+
+// Ownership check: Admin can only delete their own events
+if ($authUser['role'] !== 'superadmin') {
+    $createdBy = $eventModel->getCreatedBy($id);
+    if ($createdBy !== $authUser['id']) {
+        Response::forbidden('You can only delete events you created');
+    }
 }
 
 // Check for related gifts
@@ -59,7 +67,7 @@ if ($customerCount > 0) {
     exit;
 }
 
-// Safe to delete - no related data exists
+// Safe delete (soft delete - sets deleted_at timestamp)
 $success = $eventModel->delete($id);
 
 if (!$success) {

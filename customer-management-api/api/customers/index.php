@@ -52,6 +52,26 @@ if ($method === 'GET') {
             $filters['cityId'] = (int)$_GET['cityId'];
         }
         
+        // Event-based filters
+        if (isset($_GET['eventId']) && !empty($_GET['eventId'])) {
+            $filters['eventId'] = $_GET['eventId'];
+        }
+        
+        if (isset($_GET['careOfId']) && !empty($_GET['careOfId'])) {
+            $filters['careOfId'] = (int)$_GET['careOfId'];
+        }
+        
+        if (isset($_GET['invitationStatusId']) && !empty($_GET['invitationStatusId'])) {
+            $filters['invitationStatusId'] = (int)$_GET['invitationStatusId'];
+        }
+        
+        if (isset($_GET['giftStatus']) && !empty($_GET['giftStatus'])) {
+            $validStatuses = ['gifted', 'not_gifted'];
+            if (in_array($_GET['giftStatus'], $validStatuses)) {
+                $filters['giftStatus'] = $_GET['giftStatus'];
+            }
+        }
+        
         // Initialize Customer model
         $customerModel = new Customer();
         

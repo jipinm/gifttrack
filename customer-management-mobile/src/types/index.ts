@@ -130,6 +130,10 @@ export interface CustomerFilters {
   stateId?: number;
   districtId?: number;
   cityId?: number;
+  eventId?: string;
+  careOfId?: number;
+  invitationStatusId?: number;
+  giftStatus?: 'gifted' | 'not_gifted';
   page?: number;
   perPage?: number;
 }

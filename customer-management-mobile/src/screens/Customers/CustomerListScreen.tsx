@@ -44,6 +44,10 @@ export default function CustomerListScreen() {
     filters.stateId,
     filters.districtId,
     filters.cityId,
+    filters.eventId,
+    filters.careOfId,
+    filters.invitationStatusId,
+    filters.giftStatus,
   ].filter(Boolean).length;
 
   // Load customers
