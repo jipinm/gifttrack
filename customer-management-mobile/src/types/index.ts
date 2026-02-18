@@ -245,6 +245,7 @@ export interface Gift {
   eventId: string;
   customerId: string;
   eventName?: string;
+  eventDate?: string;
   eventCategory?: EventCategory;
   direction?: GiftDirection;
   giftType: {

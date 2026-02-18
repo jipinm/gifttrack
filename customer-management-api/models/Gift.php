@@ -56,7 +56,7 @@ class Gift {
                     LEFT JOIN gift_types gt ON g.gift_type_id = gt.id
                     LEFT JOIN event_types et ON e.event_type_id = et.id
                     " . $where . "
-                    ORDER BY e.event_date DESC";
+                    ORDER BY e.event_date ASC, g.created_at ASC";
             
             // Add pagination if provided
             if ($paginator) {

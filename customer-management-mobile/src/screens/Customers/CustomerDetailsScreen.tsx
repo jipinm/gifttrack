@@ -43,6 +43,19 @@ export default function CustomerDetailsScreen() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [giftToDelete, setGiftToDelete] = useState<Gift | null>(null);
 
+  // Derived: separate given / received totals
+  const givenGifts = gifts.filter((g) => g.direction === 'given');
+  const receivedGifts = gifts.filter((g) => g.direction === 'received');
+  const givenTotal = givenGifts.reduce((sum, g) => sum + g.value, 0);
+  const receivedTotal = receivedGifts.reduce((sum, g) => sum + g.value, 0);
+
+  // Sort gifts by event date ascending (API already sorts, but ensure client-side too)
+  const sortedGifts = [...gifts].sort((a, b) => {
+    const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+    const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+    return dateA - dateB;
+  });
+
   // Load customer and gifts
   const loadData = useCallback(async () => {
     try {
@@ -255,22 +268,34 @@ export default function CustomerDetailsScreen() {
             <Text style={styles.sectionTitle}>🎁 Gifts</Text>
           </View>
 
-          {gifts.length > 0 ? (
+          {sortedGifts.length > 0 ? (
             <>
-              {/* Summary */}
-              {totalGiftValue > 0 && (
-                <View style={styles.giftSummary}>
-                  <Text style={styles.totalGiftValue}>{formatCurrency(totalGiftValue)}</Text>
-                  <Text style={styles.giftCountText}>
-                    {giftCount} gift{giftCount > 1 ? 's' : ''}
-                  </Text>
-                </View>
-              )}
+              {/* Separate Given / Received Summaries */}
+              <View style={styles.giftSummaryRow}>
+                {receivedGifts.length > 0 && (
+                  <View style={styles.giftSummaryBlock}>
+                    <Text style={styles.summaryDirectionLabel}>📥 Received</Text>
+                    <Text style={styles.summaryValue}>{formatCurrency(receivedTotal)}</Text>
+                    <Text style={styles.summaryCount}>
+                      {receivedGifts.length} gift{receivedGifts.length > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                )}
+                {givenGifts.length > 0 && (
+                  <View style={styles.giftSummaryBlock}>
+                    <Text style={styles.summaryDirectionLabel}>📤 Given</Text>
+                    <Text style={styles.summaryValue}>{formatCurrency(givenTotal)}</Text>
+                    <Text style={styles.summaryCount}>
+                      {givenGifts.length} gift{givenGifts.length > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                )}
+              </View>
 
               <Divider style={styles.divider} />
 
-              {/* Gift List */}
-              {gifts.map((gift, index) => (
+              {/* Gift List — sorted by event date ascending */}
+              {sortedGifts.map((gift, index) => (
                 <View key={gift.id}>
                   <View style={styles.giftItem}>
                     <View style={styles.giftInfo}>
@@ -281,6 +306,7 @@ export default function CustomerDetailsScreen() {
                       {gift.eventName && (
                         <Text style={styles.giftEventName}>
                           📅 {gift.eventName}
+                          {gift.eventDate ? ` · ${formatDate(gift.eventDate)}` : ''}
                         </Text>
                       )}
                       {gift.direction && (
@@ -310,7 +336,7 @@ export default function CustomerDetailsScreen() {
                       />
                     </View>
                   </View>
-                  {index < gifts.length - 1 && <Divider style={styles.giftDivider} />}
+                  {index < sortedGifts.length - 1 && <Divider style={styles.giftDivider} />}
                 </View>
               ))}
             </>
@@ -468,18 +494,30 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   // Gift styles
-  giftSummary: {
-    alignItems: 'center',
+  giftSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
     paddingVertical: spacing.md,
+    gap: spacing.md,
   },
-  totalGiftValue: {
-    fontSize: typography.fontSize['2xl'],
+  giftSummaryBlock: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summaryDirectionLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: typography.fontSize.xl,
     fontWeight: '700',
     color: colors.success,
   },
-  giftCountText: {
-    fontSize: typography.fontSize.sm,
+  summaryCount: {
+    fontSize: typography.fontSize.xs,
     color: colors.textSecondary,
+    marginTop: 2,
   },
   giftItem: {
     flexDirection: 'row',

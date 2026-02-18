@@ -190,7 +190,7 @@ class Customer {
                         LEFT JOIN events e ON g.event_id = e.id
                         LEFT JOIN event_types et ON e.event_type_id = et.id
                         WHERE g.customer_id = :customer_id
-                        ORDER BY e.event_date DESC, g.created_at DESC";
+                        ORDER BY e.event_date ASC, g.created_at ASC";
             
             $giftStmt = $this->connection->prepare($giftSql);
             $giftStmt->execute(['customer_id' => $id]);
