@@ -45,6 +45,22 @@ if ($method === 'GET') {
         $filters['dateTo'] = $_GET['dateTo'];
     }
     
+    // Time frame filter (upcoming / past) — overrides dateFrom/dateTo when set
+    if (isset($_GET['timeFrame']) && !empty($_GET['timeFrame'])) {
+        $timeFrame = strtolower(trim($_GET['timeFrame']));
+        if (in_array($timeFrame, ['upcoming', 'past'])) {
+            $filters['timeFrame'] = $timeFrame;
+        }
+    }
+    
+    // Sort order (asc / desc)
+    if (isset($_GET['sortOrder']) && !empty($_GET['sortOrder'])) {
+        $sortOrder = strtoupper(trim($_GET['sortOrder']));
+        if (in_array($sortOrder, ['ASC', 'DESC'])) {
+            $filters['sortOrder'] = $sortOrder;
+        }
+    }
+    
     // Check for pagination
     $paginator = null;
     if (isset($_GET['page']) || isset($_GET['perPage'])) {

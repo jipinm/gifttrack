@@ -32,6 +32,8 @@ export const eventService = {
       if (filters.eventCategory) params.append('eventCategory', filters.eventCategory);
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      if (filters.timeFrame) params.append('timeFrame', filters.timeFrame);
+      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
       if (filters.page) params.append('page', filters.page.toString());
       if (filters.perPage) params.append('perPage', filters.perPage.toString());
     }

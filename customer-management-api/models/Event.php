@@ -46,7 +46,22 @@ class Event {
                 $params['eventCategory'] = $filters['eventCategory'];
             }
             
-            // Date from filter
+            // Time frame filter (upcoming / past) — auto-sets date boundaries
+            // This takes precedence; explicit dateFrom/dateTo can still further narrow
+            if (!empty($filters['timeFrame'])) {
+                $today = date('Y-m-d');
+                if ($filters['timeFrame'] === 'upcoming') {
+                    // Today and onwards
+                    $whereClause .= " AND e.event_date >= :timeFrameDate";
+                    $params['timeFrameDate'] = $today;
+                } elseif ($filters['timeFrame'] === 'past') {
+                    // Before today
+                    $whereClause .= " AND e.event_date < :timeFrameDate";
+                    $params['timeFrameDate'] = $today;
+                }
+            }
+            
+            // Date from filter (can work alongside timeFrame for further narrowing)
             if (!empty($filters['dateFrom'])) {
                 $whereClause .= " AND e.event_date >= :dateFrom";
                 $params['dateFrom'] = $filters['dateFrom'];
@@ -56,6 +71,15 @@ class Event {
             if (!empty($filters['dateTo'])) {
                 $whereClause .= " AND e.event_date <= :dateTo";
                 $params['dateTo'] = $filters['dateTo'];
+            }
+            
+            // Determine sort order
+            $sortOrder = 'DESC'; // default: most recent first
+            if (!empty($filters['sortOrder']) && in_array(strtoupper($filters['sortOrder']), ['ASC', 'DESC'])) {
+                $sortOrder = strtoupper($filters['sortOrder']);
+            } elseif (!empty($filters['timeFrame'])) {
+                // Auto-sort based on time frame
+                $sortOrder = ($filters['timeFrame'] === 'upcoming') ? 'ASC' : 'DESC';
             }
             
             // If paginator is provided, get total count first
@@ -78,7 +102,7 @@ class Event {
                     LEFT JOIN event_types et ON e.event_type_id = et.id
                     LEFT JOIN users u ON e.created_by = u.id
                     " . $whereClause . "
-                    ORDER BY e.event_date DESC, e.created_at DESC";
+                    ORDER BY e.event_date " . $sortOrder . ", e.created_at " . $sortOrder;
             
             if ($paginator) {
                 $sql .= " " . $paginator->getLimitClause();

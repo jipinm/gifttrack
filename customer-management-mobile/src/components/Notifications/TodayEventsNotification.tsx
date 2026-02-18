@@ -8,6 +8,7 @@ import { View, StyleSheet, Vibration } from 'react-native';
 import { Modal, Portal, Text, Button, IconButton, Card, Divider } from 'react-native-paper';
 import { customerService } from '../../services/customerService';
 import { storage } from '../../utils/storage';
+import { playAlertSound, unloadAlertSound } from '../../utils/alertSound';
 import { colors, spacing, borderRadius, shadows, typography } from '../../styles/theme';
 import type { Customer } from '../../types';
 
@@ -88,7 +89,8 @@ export default function TodayEventsNotification({
           setTodayCustomers(customers);
           setVisible(true);
           
-          // Play vibration as notification sound alternative
+          // Play alert sound + vibration
+          playAlertSound().catch(() => {});
           Vibration.vibrate([0, 250, 100, 250]);
         }
       }
@@ -108,6 +110,7 @@ export default function TodayEventsNotification({
   // Handle close
   const handleClose = useCallback(() => {
     setVisible(false);
+    unloadAlertSound();
   }, []);
 
   // Handle remind later

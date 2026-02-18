@@ -6,6 +6,9 @@
 # Disable automatic directory slash redirects for API routes
 DirectorySlash Off
 
+# Disable MultiViews to prevent content negotiation interfering with rewrites
+Options -MultiViews
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
@@ -22,7 +25,7 @@ DirectorySlash Off
     # Handle Preflight OPTIONS Requests
     # ==================================================
     RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=200,L]
+    RewriteRule ^(.*)$ - [R=200,L]
     
     # ==================================================
     # Test Route (for URL rewriting verification)
@@ -45,71 +48,87 @@ DirectorySlash Off
     # ==================================================
     # Customer Routes (RESTful)
     # ==================================================
-    # GET /api/customers/{customerId}/events (must be before /api/customers/{id})
-    RewriteRule ^api/customers/([a-f0-9\-]+)/events/?$ api/events/index.php?customerId=$1 [L,QSA]
-    
     # GET/POST /api/customers
     RewriteRule ^api/customers/?$ api/customers/index.php [L,QSA]
     
-    # GET/PUT/DELETE /api/customers/{id}
+    # /api/customers/show?id={id} (query param based)
+    RewriteRule ^api/customers/show/?$ api/customers/show.php [L,QSA]
+    
+    # GET/PUT/DELETE /api/customers/{id} (path-based fallback)
     RewriteRule ^api/customers/([a-f0-9\-]+)/?$ api/customers/show.php?id=$1 [L,QSA]
     
-    # GET /api/customers/{customerId}/gifts
-    RewriteRule ^api/customers/([a-f0-9\-]+)/gifts/?$ api/gifts/customer-gifts.php?customerId=$1 [L,QSA]
+    # ==================================================
+    # Event Routes (Standalone - managed by Super Admin)
+    # ==================================================
+    # GET/POST /api/events
+    RewriteRule ^api/events/?$ api/events/index.php [L,QSA]
+    
+    # GET /api/events/show?id={id}
+    RewriteRule ^api/events/show/?$ api/events/show.php [L,QSA]
+    
+    # PUT /api/events/update?id={id}
+    RewriteRule ^api/events/update/?$ api/events/update.php [L,QSA]
+    
+    # DELETE /api/events/delete?id={id}
+    RewriteRule ^api/events/delete/?$ api/events/delete.php [L,QSA]
+    
+    # GET/POST /api/events/customers?event_id={id}
+    RewriteRule ^api/events/customers/?$ api/events/customers.php [L,QSA]
+    
+    # PUT /api/events/update-attachment?id={id}
+    RewriteRule ^api/events/update-attachment/?$ api/events/update-attachment.php [L,QSA]
+    
+    # DELETE /api/events/detach-customer?id={id}
+    RewriteRule ^api/events/detach-customer/?$ api/events/detach-customer.php [L,QSA]
     
     # ==================================================
-    # Event Routes (RESTful)
+    # Gift Routes
     # ==================================================
-    # POST /api/events
-    RewriteRule ^api/events/?$ api/events/create.php [L,QSA]
+    # GET /api/gifts/customer-gifts?customer_id={id}
+    RewriteRule ^api/gifts/customer-gifts/?$ api/gifts/customer-gifts.php [L,QSA]
     
-    # GET /api/events/{id}
-    RewriteRule ^api/events/([a-f0-9\-]+)/?$ api/events/show.php?id=$1 [L,QSA]
-    
-    # PUT /api/events/{id}
-    RewriteRule ^api/events/([a-f0-9\-]+)/?$ api/events/update.php?id=$1 [L,QSA]
-    
-    # DELETE /api/events/{id}/delete
-    RewriteRule ^api/events/([a-f0-9\-]+)/delete/?$ api/events/delete.php?id=$1 [L,QSA]
-    
-    # GET /api/events/{eventId}/gift
-    RewriteRule ^api/events/([a-f0-9\-]+)/gift/?$ api/gifts/create.php?eventId=$1 [L,QSA]
-    
-    # ==================================================
-    # Gift Routes (RESTful)
-    # ==================================================
-    # POST /api/gifts (for backward compatibility with event_id in body, not recommended)
+    # POST /api/gifts (create)
     RewriteRule ^api/gifts/?$ api/gifts/create.php [L,QSA]
     
-    # GET /api/gifts/{id}
+    # PUT /api/gifts/update?id={id}
+    RewriteRule ^api/gifts/update/?$ api/gifts/update.php [L,QSA]
+    
+    # DELETE /api/gifts/delete?id={id}
+    RewriteRule ^api/gifts/delete/?$ api/gifts/delete.php [L,QSA]
+    
+    # Legacy path-based routes (fallback)
     RewriteRule ^api/gifts/([a-f0-9\-]+)/?$ api/gifts/update.php?id=$1 [L,QSA]
     
-    # PUT /api/gifts/{id}
-    RewriteRule ^api/gifts/([a-f0-9\-]+)/?$ api/gifts/update.php?id=$1 [L,QSA]
-    
-    # DELETE /api/gifts/{id}/delete
-    RewriteRule ^api/gifts/([a-f0-9\-]+)/delete/?$ api/gifts/delete.php?id=$1 [L,QSA]
-    
     # ==================================================
-    # Admin Routes (Superadmin Only)
+    # Admin Routes (Super Admin Only)
     # ==================================================
-    # GET /api/admins
+    # GET /api/admins or /api/admins/index
     RewriteRule ^api/admins/?$ api/admins/index.php [L,QSA]
+    RewriteRule ^api/admins/index/?$ api/admins/index.php [L,QSA]
     
-    # POST /api/admins/create
+    # POST /api/admins or /api/admins/create
     RewriteRule ^api/admins/create/?$ api/admins/create.php [L,QSA]
+    
+    # GET /api/admins/show?id={id}
+    RewriteRule ^api/admins/show/?$ api/admins/show.php [L,QSA]
     
     # GET /api/admins/{id}
     RewriteRule ^api/admins/([a-f0-9\-]+)/?$ api/admins/show.php?id=$1 [L,QSA]
     
-    # PUT /api/admins/update
+    # PUT /api/admins/update?id={id}
     RewriteRule ^api/admins/update/?$ api/admins/update.php [L,QSA]
     
-    # DELETE /api/admins/delete
+    # PUT /api/admins/{id}/update
+    RewriteRule ^api/admins/([a-f0-9\-]+)/update/?$ api/admins/update.php?id=$1 [L,QSA]
+    
+    # DELETE /api/admins/delete?id={id}
     RewriteRule ^api/admins/delete/?$ api/admins/delete.php [L,QSA]
     
+    # DELETE /api/admins/{id}/delete
+    RewriteRule ^api/admins/([a-f0-9\-]+)/delete/?$ api/admins/delete.php?id=$1 [L,QSA]
+    
     # ==================================================
-    # Master Data Routes (Read-Only)
+    # Master Data Routes
     # ==================================================
     RewriteRule ^api/master/states/?$ api/master/states.php [L,QSA]
     RewriteRule ^api/master/districts/?$ api/master/districts.php [L,QSA]
@@ -117,66 +136,76 @@ DirectorySlash Off
     RewriteRule ^api/master/event-types/?$ api/master/event-types.php [L,QSA]
     RewriteRule ^api/master/gift-types/?$ api/master/gift-types.php [L,QSA]
     RewriteRule ^api/master/invitation-status/?$ api/master/invitation-status.php [L,QSA]
+    RewriteRule ^api/master/care-of-options/?$ api/master/care-of-options.php [L,QSA]
     
     # ==================================================
-    # Fallback for index.php
+    # Fallback: If file doesn't exist, let PHP handle it
     # ==================================================
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^api/(.*)$ api/index.php [L,QSA]
+    RewriteRule ^api/(.*)$ api/$1 [L]
+    
+    # ==================================================
+    # Block access to sensitive files
+    # ==================================================
+    RewriteRule ^\.env$ - [F,L]
+    RewriteRule ^\.git - [F,L]
+    RewriteRule ^vendor - [F,L]
+    RewriteRule ^composer\.(json|lock)$ - [F,L]
+    RewriteRule ^\.htaccess$ - [F,L]
+    RewriteRule \.sql$ - [F,L]
 </IfModule>
 
 # ==================================================
-# Security Headers
+# Security & Performance Settings
 # ==================================================
+
+# Disable directory listing
+Options -Indexes -MultiViews
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# CORS Headers (Production)
 <IfModule mod_headers.c>
-    # Prevent clickjacking
-    Header always set X-Frame-Options "SAMEORIGIN"
+    # Production CORS - allow all origins for mobile app
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Max-Age "3600"
     
-    # Prevent MIME sniffing
+    # Security headers
     Header always set X-Content-Type-Options "nosniff"
-    
-    # Enable XSS protection
+    Header always set X-Frame-Options "DENY"
     Header always set X-XSS-Protection "1; mode=block"
-    
-    # Referrer Policy
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# ==================================================
-# Deny Access to Sensitive Files
-# ==================================================
-<FilesMatch "^\.">
-    Order allow,deny
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Cache control for API responses
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/json "access plus 0 seconds"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# Deny access to specific file types
+<FilesMatch "(^\.htaccess|^\.env|composer\.json|composer\.lock|\.sql|\.md|\.bat|\.sh)$">
+    Order Allow,Deny
     Deny from all
 </FilesMatch>
 
-<FilesMatch "\.env$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-<FilesMatch "composer\.(json|lock)$">
-    Order allow,deny
-    Deny from all
-</FilesMatch>
-
-# ==================================================
-# PHP Configuration
-# ==================================================
+# PHP Configuration (if mod_php is available)
 <IfModule mod_php.c>
     php_value upload_max_filesize 10M
     php_value post_max_size 10M
     php_value max_execution_time 300
     php_value max_input_time 300
-</IfModule>
-
-# ==================================================
-# Enable Compression
-# ==================================================
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE application/json
-    AddOutputFilterByType DEFLATE text/html
-    AddOutputFilterByType DEFLATE text/plain
-    AddOutputFilterByType DEFLATE text/xml
+    php_flag display_errors Off
+    php_flag display_startup_errors Off
+    php_flag log_errors On
 </IfModule>

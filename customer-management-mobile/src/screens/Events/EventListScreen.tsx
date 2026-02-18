@@ -1,13 +1,23 @@
 /**
  * Event List Screen
  * Displays paginated list of standalone events
+ * Supports Past/Upcoming toggle, date range filter, category filter, search
  * All users can view events. SuperAdmin can create/edit/delete.
  */
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import {
+  View,
+  FlatList,
+  StyleSheet,
+  RefreshControl,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { Text, FAB, ActivityIndicator, Chip, Searchbar } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { eventService } from '../../services/eventService';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, borderRadius, typography, shadows } from '../../styles/theme';
@@ -15,13 +25,20 @@ import type { Event, EventFilters, PaginatedResponse, PaginationMeta } from '../
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
 
 type NavigationProp = NativeStackNavigationProp<EventStackParamList>;
+type TimeFrame = 'upcoming' | 'past';
 
 const PAGE_SIZE = 20;
+/** Height of the bottom tab bar (excluding safe-area inset). Must stay in sync with MainTabNavigator. */
+const TAB_BAR_BASE_HEIGHT = 70;
 
 export default function EventListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { isSuperAdmin } = useAuth();
   const isSuperAdminValue = isSuperAdmin();
+  const insets = useSafeAreaInsets();
+
+  // Derived bottom offset so FAB & list clear the absolutely-positioned tab bar
+  const bottomBarHeight = TAB_BAR_BASE_HEIGHT + insets.bottom;
 
   // State
   const [events, setEvents] = useState<Event[]>([]);
@@ -37,6 +54,51 @@ export default function EventListScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [activeCategory, setActiveCategory] = useState<'all' | 'self_event' | 'customer_event'>('all');
+
+  // Time-frame toggle (default: upcoming)
+  const [activeTimeFrame, setActiveTimeFrame] = useState<TimeFrame>('upcoming');
+
+  // Date-range filter
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
+  /**
+   * Which picker is currently open ('from' | 'to' | null).
+   * Using a single value ensures only one picker is shown at a time.
+   */
+  const [activePicker, setActivePicker] = useState<'from' | 'to' | null>(null);
+  /**
+   * The working Date value inside the active picker.
+   * Kept in separate state so the picker always has a valid (non-null) Date
+   * and we can commit it only when the user confirms (Done / Android OK).
+   */
+  const [pickerWorkingDate, setPickerWorkingDate] = useState<Date>(new Date());
+
+  /** Build the filter payload sent to the API */
+  const buildFilters = useCallback(
+    (page = 1): EventFilters => {
+      const f: EventFilters = {
+        page,
+        perPage: PAGE_SIZE,
+        search: searchQuery || undefined,
+        eventCategory: activeCategory !== 'all' ? activeCategory : undefined,
+      };
+
+      if (dateFrom || dateTo) {
+        // Date-range mode: chronological, ignore timeFrame auto-filter
+        if (dateFrom) f.dateFrom = formatISODate(dateFrom);
+        if (dateTo) f.dateTo = formatISODate(dateTo);
+        f.sortOrder = 'ASC'; // chronological within range
+      } else {
+        // Normal time-frame mode
+        f.timeFrame = activeTimeFrame;
+        f.sortOrder = activeTimeFrame === 'upcoming' ? 'ASC' : 'DESC';
+      }
+
+      return f;
+    },
+    [searchQuery, activeCategory, activeTimeFrame, dateFrom, dateTo],
+  );
 
   /**
    * Normalise the API response into the shape the list code expects.
@@ -90,11 +152,8 @@ export default function EventListScreen() {
         if (!append) setIsLoading(true);
         setError(null);
 
-        const currentFilters: EventFilters = {
-          ...filters,
-          search: searchQuery || undefined,
-          eventCategory: activeCategory !== 'all' ? activeCategory : undefined,
-        };
+        const page = append ? (filters.page || 1) + 1 : 1;
+        const currentFilters = buildFilters(page);
 
         const response = await eventService.getAll(currentFilters);
 
@@ -124,7 +183,7 @@ export default function EventListScreen() {
         setIsLoadingMore(false);
       }
     },
-    [filters, searchQuery, activeCategory]
+    [filters.page, buildFilters, normalizeEventResponse],
   );
 
   // Reload on focus — inlined fetch to avoid stale loadEvents closure
@@ -137,12 +196,7 @@ export default function EventListScreen() {
           setIsLoading(true);
           setError(null);
 
-          const currentFilters: EventFilters = {
-            page: 1,
-            perPage: PAGE_SIZE,
-            search: searchQuery || undefined,
-            eventCategory: activeCategory !== 'all' ? activeCategory : undefined,
-          };
+          const currentFilters = buildFilters(1);
 
           const response = await eventService.getAll(currentFilters);
 
@@ -180,7 +234,7 @@ export default function EventListScreen() {
       return () => {
         cancelled = true;
       };
-    }, [searchQuery, activeCategory])
+    }, [searchQuery, activeCategory, activeTimeFrame, dateFrom, dateTo]),
   );
 
   // Refresh
@@ -194,11 +248,9 @@ export default function EventListScreen() {
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !isLoading) {
       setIsLoadingMore(true);
-      const nextPage = (filters.page || 1) + 1;
-      setFilters((prev) => ({ ...prev, page: nextPage }));
       loadEvents(true);
     }
-  }, [isLoadingMore, hasMore, isLoading, filters.page, loadEvents]);
+  }, [isLoadingMore, hasMore, isLoading, loadEvents]);
 
   // Format date
   const formatDate = (dateString: string): string => {
@@ -283,11 +335,88 @@ export default function EventListScreen() {
     setFilters((prev) => ({ ...prev, page: 1 }));
   }, []);
 
+  // Time-frame toggle handler
+  const handleTimeFrameChange = useCallback((tf: TimeFrame) => {
+    setActiveTimeFrame(tf);
+    // Clear date-range when switching time-frame tabs
+    setDateFrom(null);
+    setDateTo(null);
+    setShowDateFilter(false);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, []);
+
+  // Clear date range
+  const handleClearDateFilter = useCallback(() => {
+    setDateFrom(null);
+    setDateTo(null);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, []);
+
+  /** Open a picker, initialising its working value to the current committed date or today */
+  const openPicker = useCallback(
+    (which: 'from' | 'to') => {
+      const initial = which === 'from'
+        ? (dateFrom ?? new Date())
+        : (dateTo ?? new Date());
+      setPickerWorkingDate(initial);
+      setActivePicker(which);
+    },
+    [dateFrom, dateTo],
+  );
+
+  /** iOS: called on every spinner scroll — just update working value, do NOT commit yet */
+  /** Android: called once with type 'set' or 'dismissed' */
+  const handlePickerChange = useCallback(
+    (event: DateTimePickerEvent, selectedDate?: Date) => {
+      if (Platform.OS === 'android') {
+        // Android picker closes itself after a choice
+        setActivePicker(null);
+        if (event.type === 'set' && selectedDate) {
+          if (activePicker === 'from') {
+            setDateFrom(selectedDate);
+          } else {
+            setDateTo(selectedDate);
+          }
+          setFilters((prev) => ({ ...prev, page: 1 }));
+        }
+        // 'dismissed' → no change, picker already closed
+      } else {
+        // iOS spinner fires type 'change' on every scroll — keep working value in sync
+        if (selectedDate) {
+          setPickerWorkingDate(selectedDate);
+        }
+      }
+    },
+    [activePicker],
+  );
+
+  /** iOS only: user pressed 'Done' — commit the working value */
+  const handlePickerDone = useCallback(() => {
+    if (activePicker === 'from') {
+      setDateFrom(pickerWorkingDate);
+    } else {
+      setDateTo(pickerWorkingDate);
+    }
+    setActivePicker(null);
+    setFilters((prev) => ({ ...prev, page: 1 }));
+  }, [activePicker, pickerWorkingDate]);
+
+  /** iOS only: user pressed 'Cancel' — discard working value */
+  const handlePickerCancel = useCallback(() => {
+    setActivePicker(null);
+  }, []);
+
   // Empty state
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Text style={styles.emptyIcon}>📅</Text>
-      <Text style={styles.emptyText}>No events found</Text>
+      <Text style={styles.emptyText}>
+        {(dateFrom || dateTo)
+          ? 'No events in selected date range'
+          : activeTimeFrame === 'upcoming'
+            ? 'No upcoming events'
+            : 'No past events'}
+      </Text>
       <Text style={styles.emptyHint}>
         Tap + to create a new event
       </Text>
@@ -304,6 +433,9 @@ export default function EventListScreen() {
     );
   };
 
+  // Whether date range is active (overrides timeFrame)
+  const isDateRangeActive = !!(dateFrom || dateTo);
+
   return (
     <View style={styles.container}>
       {/* Search Bar */}
@@ -316,6 +448,139 @@ export default function EventListScreen() {
           inputStyle={styles.searchInput}
         />
       </View>
+
+      {/* ── Time-frame toggle (Upcoming / Past) + Date filter button ── */}
+      <View style={styles.timeFrameContainer}>
+        <View style={styles.timeFrameToggle}>
+          <TouchableOpacity
+            style={[
+              styles.timeFrameTab,
+              activeTimeFrame === 'upcoming' && !isDateRangeActive && styles.timeFrameTabActive,
+            ]}
+            onPress={() => handleTimeFrameChange('upcoming')}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.timeFrameText,
+                activeTimeFrame === 'upcoming' && !isDateRangeActive && styles.timeFrameTextActive,
+              ]}
+            >
+              Upcoming
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.timeFrameTab,
+              activeTimeFrame === 'past' && !isDateRangeActive && styles.timeFrameTabActive,
+            ]}
+            onPress={() => handleTimeFrameChange('past')}
+            activeOpacity={0.7}
+          >
+            <Text
+              style={[
+                styles.timeFrameText,
+                activeTimeFrame === 'past' && !isDateRangeActive && styles.timeFrameTextActive,
+              ]}
+            >
+              Past
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Date-range toggle button */}
+        <TouchableOpacity
+          style={[styles.dateFilterToggle, showDateFilter && styles.dateFilterToggleActive]}
+          onPress={() => setShowDateFilter((v) => !v)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.dateFilterToggleIcon}>📅</Text>
+          <Text
+            style={[
+              styles.dateFilterToggleText,
+              (showDateFilter || isDateRangeActive) && styles.dateFilterToggleTextActive,
+            ]}
+          >
+            {isDateRangeActive ? 'Dates ●' : 'Dates'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Date-range filter (collapsible) ── */}
+      {showDateFilter && (
+        <View style={styles.dateRangeContainer}>
+          <View style={styles.dateRangeRow}>
+            {/* From Date */}
+            <TouchableOpacity
+              style={[
+                styles.datePickerButton,
+                activePicker === 'from' && styles.datePickerButtonActive,
+              ]}
+              onPress={() => openPicker('from')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.datePickerLabel}>From</Text>
+              <Text style={[styles.datePickerValue, !dateFrom && styles.datePickerPlaceholder]}>
+                {dateFrom ? formatDate(dateFrom.toISOString()) : 'Select'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* To Date */}
+            <TouchableOpacity
+              style={[
+                styles.datePickerButton,
+                activePicker === 'to' && styles.datePickerButtonActive,
+              ]}
+              onPress={() => openPicker('to')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.datePickerLabel}>To</Text>
+              <Text style={[styles.datePickerValue, !dateTo && styles.datePickerPlaceholder]}>
+                {dateTo ? formatDate(dateTo.toISOString()) : 'Select'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Clear */}
+            {isDateRangeActive && (
+              <TouchableOpacity
+                style={styles.dateClearButton}
+                onPress={handleClearDateFilter}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.dateClearText}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Native date picker — only one shown at a time */}
+          {activePicker !== null && (
+            <>
+              {/* iOS: show Done / Cancel bar above the spinner */}
+              {Platform.OS === 'ios' && (
+                <View style={styles.iosPickerToolbar}>
+                  <TouchableOpacity onPress={handlePickerCancel} activeOpacity={0.7}>
+                    <Text style={styles.iosPickerCancel}>Cancel</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.iosPickerTitle}>
+                    {activePicker === 'from' ? 'Select From Date' : 'Select To Date'}
+                  </Text>
+                  <TouchableOpacity onPress={handlePickerDone} activeOpacity={0.7}>
+                    <Text style={styles.iosPickerDone}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <DateTimePicker
+                value={pickerWorkingDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handlePickerChange}
+                minimumDate={activePicker === 'to' && dateFrom ? dateFrom : undefined}
+                maximumDate={activePicker === 'from' && dateTo ? dateTo : undefined}
+              />
+            </>
+          )}
+        </View>
+      )}
 
       {/* Category Filter Chips */}
       <View style={styles.chipContainer}>
@@ -365,7 +630,7 @@ export default function EventListScreen() {
           data={events}
           renderItem={renderEventCard}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomBarHeight + 24 }]}
           refreshControl={
             <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
           }
@@ -379,11 +644,19 @@ export default function EventListScreen() {
       {/* FAB for adding events (Admin and SuperAdmin) */}
       <FAB
         icon="plus"
-        style={styles.fab}
+        style={[styles.fab, { bottom: bottomBarHeight + 16 }]}
         onPress={() => navigation.navigate('CreateEvent')}
       />
     </View>
   );
+}
+
+/** Format a Date object to YYYY-MM-DD for the API */
+function formatISODate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 const styles = StyleSheet.create({
@@ -403,6 +676,115 @@ const styles = StyleSheet.create({
   searchInput: {
     fontSize: typography.fontSize.sm,
   },
+
+  // ── Time-frame toggle ──────────────────────────────────────────────
+  timeFrameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  timeFrameToggle: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: colors.gray100,
+    borderRadius: borderRadius.md,
+    padding: 3,
+  },
+  timeFrameTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: borderRadius.md - 2,
+  },
+  timeFrameTabActive: {
+    backgroundColor: colors.primary,
+    ...shadows.sm,
+  },
+  timeFrameText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  timeFrameTextActive: {
+    color: colors.white,
+  },
+  dateFilterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.gray100,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: borderRadius.md,
+    gap: 4,
+  },
+  dateFilterToggleActive: {
+    backgroundColor: colors.primaryLight,
+  },
+  dateFilterToggleIcon: {
+    fontSize: 14,
+  },
+  dateFilterToggleText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  dateFilterToggleTextActive: {
+    color: colors.primaryDark,
+  },
+
+  // ── Date-range filter ──────────────────────────────────────────────
+  dateRangeContainer: {
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.xs,
+  },
+  dateRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  datePickerButton: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  datePickerButtonActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.infoLight ?? '#DBEAFE',
+  },
+  datePickerLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  datePickerValue: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  datePickerPlaceholder: {
+    color: colors.textDisabled,
+    fontWeight: '400',
+  },
+  dateClearButton: {
+    backgroundColor: colors.errorLight,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs + 4,
+    borderRadius: borderRadius.md,
+  },
+  dateClearText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    color: colors.error,
+  },
+
+  // ── Category chips ─────────────────────────────────────────────────
   chipContainer: {
     flexDirection: 'row',
     paddingHorizontal: spacing.sm,
@@ -434,7 +816,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: spacing.sm,
-    paddingBottom: 100,
+    // paddingBottom is set dynamically via inline style using bottomBarHeight
   },
   eventCard: {
     backgroundColor: colors.surface,
@@ -537,7 +919,34 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.md,
-    bottom: 90,
+    // bottom is set dynamically via inline style using bottomBarHeight
     backgroundColor: colors.primary,
+  },
+
+  // ── iOS picker toolbar ─────────────────────────────────────────────
+  iosPickerToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.gray100,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.xs,
+  },
+  iosPickerCancel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  iosPickerTitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
+    fontWeight: '600',
+  },
+  iosPickerDone: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '700',
   },
 });

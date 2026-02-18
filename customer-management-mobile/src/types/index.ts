@@ -181,6 +181,8 @@ export interface EventFilters {
   eventCategory?: EventCategory;
   dateFrom?: string;
   dateTo?: string;
+  timeFrame?: 'upcoming' | 'past';
+  sortOrder?: 'ASC' | 'DESC';
   page?: number;
   perPage?: number;
 }
