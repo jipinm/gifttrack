@@ -4,7 +4,7 @@
  * (Customer attachment + gift is for Customer Events only)
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, StyleSheet, Alert, Platform, TouchableOpacity, FlatList } from 'react-native';
+import { View, StyleSheet, Alert, Platform, TouchableOpacity, FlatList, ScrollView, Modal } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import {
   TextInput,
@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   Divider,
   IconButton,
+  Portal,
 } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
@@ -40,6 +41,9 @@ import type {
   InvitationStatus,
   CareOfOption,
   GiftType,
+  EventCustomer,
+  Gift,
+  CustomerGiftsResponse,
 } from '../../types';
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
 
@@ -98,6 +102,16 @@ export default function CreateEventScreen() {
   const [giftTypeId, setGiftTypeId] = useState<number | null>(null);
   const [giftValue, setGiftValue] = useState('');
   const [giftDescription, setGiftDescription] = useState('');
+
+  // ==========================================
+  // Customer history modal state
+  // ==========================================
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [historyModalType, setHistoryModalType] = useState<'events' | 'gifts'>('events');
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [customerEvents, setCustomerEvents] = useState<EventCustomer[]>([]);
+  const [customerGifts, setCustomerGifts] = useState<Gift[]>([]);
+  const [customerGiftTotalValue, setCustomerGiftTotalValue] = useState(0);
 
   const isCustomerEvent = eventCategory === 'customer_event';
 
@@ -251,6 +265,67 @@ export default function CreateEventScreen() {
     setNewCustomerStateError(undefined);
     setNewCustomerDistrictError(undefined);
     setNewCustomerCityError(undefined);
+  }, []);
+
+  // ==========================================
+  // Customer history handlers
+  // ==========================================
+  const formatHistoryDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatCurrency = (value: number): string => {
+    return `₹${value.toLocaleString('en-IN')}`;
+  };
+
+  const handleViewHistory = useCallback(async (type: 'events' | 'gifts') => {
+    if (!selectedCustomer) return;
+
+    setHistoryModalType(type);
+    setHistoryModalVisible(true);
+    setHistoryLoading(true);
+
+    try {
+      if (type === 'events') {
+        const response = await customerService.getCustomerEvents(selectedCustomer.id);
+        if (response.success && response.data) {
+          setCustomerEvents(response.data.events || []);
+        } else {
+          setCustomerEvents([]);
+        }
+      } else {
+        const response = await giftService.getCustomerGifts(selectedCustomer.id);
+        if (response.success && response.data) {
+          const giftData = response.data as CustomerGiftsResponse;
+          setCustomerGifts(giftData.gifts || []);
+          setCustomerGiftTotalValue(giftData.totalValue || 0);
+        } else {
+          setCustomerGifts([]);
+          setCustomerGiftTotalValue(0);
+        }
+      }
+    } catch {
+      if (type === 'events') {
+        setCustomerEvents([]);
+      } else {
+        setCustomerGifts([]);
+        setCustomerGiftTotalValue(0);
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [selectedCustomer]);
+
+  const handleCloseHistoryModal = useCallback(() => {
+    setHistoryModalVisible(false);
+    setCustomerEvents([]);
+    setCustomerGifts([]);
+    setCustomerGiftTotalValue(0);
   }, []);
 
   // ==========================================
@@ -471,6 +546,7 @@ export default function CreateEventScreen() {
   );
 
   return (
+    <>
     <KeyboardAwareScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
@@ -650,6 +726,26 @@ export default function CreateEventScreen() {
               <Text style={styles.selectedPhone}>
                 📱 {selectedCustomer.mobileNumber}
               </Text>
+
+              {/* History quick-view buttons */}
+              <View style={styles.historyButtonRow}>
+                <TouchableOpacity
+                  style={styles.historyButton}
+                  onPress={() => handleViewHistory('events')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.historyButtonIcon}>📋</Text>
+                  <Text style={styles.historyButtonText}>Event History</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.historyButton}
+                  onPress={() => handleViewHistory('gifts')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.historyButtonIcon}>🎁</Text>
+                  <Text style={styles.historyButtonText}>Gift History</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -805,6 +901,182 @@ export default function CreateEventScreen() {
         {isSubmitting ? 'Creating Event...' : 'Create Event'}
       </Button>
     </KeyboardAwareScrollView>
+
+    {/* Customer History Modal */}
+    <Modal
+      visible={historyModalVisible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleCloseHistoryModal}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          {/* Modal Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              {historyModalType === 'events' ? '📋 Event History' : '🎁 Gift History'}
+            </Text>
+            <IconButton
+              icon="close"
+              size={22}
+              onPress={handleCloseHistoryModal}
+              iconColor={colors.textSecondary}
+            />
+          </View>
+          {selectedCustomer && (
+            <Text style={styles.modalSubtitle}>{selectedCustomer.name}</Text>
+          )}
+          <Divider style={styles.modalDivider} />
+
+          {/* Modal Body */}
+          {historyLoading ? (
+            <View style={styles.modalLoading}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.modalLoadingText}>Loading...</Text>
+            </View>
+          ) : historyModalType === 'events' ? (
+            /* Event History Content */
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {customerEvents.length > 0 ? (
+                customerEvents.map((ec, index) => (
+                  <View key={ec.id}>
+                    <View style={styles.historyEventItem}>
+                      <View style={styles.historyEventHeader}>
+                        <Text style={styles.historyEventName}>
+                          {ec.event?.name || 'Unknown Event'}
+                        </Text>
+                        {ec.event?.eventCategory && (
+                          <View style={[
+                            styles.historyBadge,
+                            ec.event.eventCategory === 'self_event'
+                              ? styles.historyBadgeSelf
+                              : styles.historyBadgeCustomer,
+                          ]}>
+                            <Text style={styles.historyBadgeText}>
+                              {ec.event.eventCategory === 'self_event' ? 'Self' : 'Customer'}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      {ec.event?.eventDate && (
+                        <Text style={styles.historyEventDate}>
+                          📅 {formatHistoryDate(ec.event.eventDate)}
+                        </Text>
+                      )}
+                      <View style={styles.historyEventMeta}>
+                        <Text style={styles.historyEventMetaText}>
+                          {ec.invitationStatus?.name || 'N/A'}
+                        </Text>
+                        {ec.giftCount > 0 && (
+                          <Text style={styles.historyEventMetaText}>
+                            {' · '}{ec.giftCount} gift{ec.giftCount > 1 ? 's' : ''} ({formatCurrency(ec.totalGiftValue)})
+                          </Text>
+                        )}
+                      </View>
+                      {ec.giftDirection && (
+                        <Text style={styles.historyDirection}>
+                          {ec.giftDirection === 'received' ? '📥 Received' : '📤 Given'}
+                        </Text>
+                      )}
+                    </View>
+                    {index < customerEvents.length - 1 && <Divider style={styles.historyDivider} />}
+                  </View>
+                ))
+              ) : (
+                <View style={styles.historyEmpty}>
+                  <Text style={styles.historyEmptyText}>No events found</Text>
+                  <Text style={styles.historyEmptyHint}>
+                    This customer has not been attached to any events yet.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          ) : (
+            /* Gift History Content */
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {customerGifts.length > 0 ? (
+                <>
+                  {/* Separate Given / Received Summaries */}
+                  {(() => {
+                    const givenGifts = customerGifts.filter((g) => g.direction === 'given');
+                    const receivedGifts = customerGifts.filter((g) => g.direction === 'received');
+                    const givenTotal = givenGifts.reduce((sum, g) => sum + g.value, 0);
+                    const receivedTotal = receivedGifts.reduce((sum, g) => sum + g.value, 0);
+                    return (
+                      <View style={styles.giftSummaryRow}>
+                        {receivedGifts.length > 0 && (
+                          <View style={styles.giftSummaryBlock}>
+                            <Text style={styles.summaryDirectionLabel}>📥 Received</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(receivedTotal)}</Text>
+                            <Text style={styles.summaryCount}>
+                              {receivedGifts.length} gift{receivedGifts.length > 1 ? 's' : ''}
+                            </Text>
+                          </View>
+                        )}
+                        {givenGifts.length > 0 && (
+                          <View style={styles.giftSummaryBlock}>
+                            <Text style={styles.summaryDirectionLabel}>📤 Given</Text>
+                            <Text style={styles.summaryValue}>{formatCurrency(givenTotal)}</Text>
+                            <Text style={styles.summaryCount}>
+                              {givenGifts.length} gift{givenGifts.length > 1 ? 's' : ''}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  })()}
+
+                  <Divider style={styles.historyDivider} />
+
+                  {/* Gift List — sorted by event date ascending */}
+                  {[...customerGifts]
+                    .sort((a, b) => {
+                      const dateA = a.eventDate ? new Date(a.eventDate).getTime() : 0;
+                      const dateB = b.eventDate ? new Date(b.eventDate).getTime() : 0;
+                      return dateA - dateB;
+                    })
+                    .map((gift, index) => (
+                      <View key={gift.id}>
+                        <View style={styles.historyGiftItem}>
+                          <View style={styles.historyGiftHeader}>
+                            <Text style={styles.historyGiftType}>{gift.giftType.name}</Text>
+                            <Text style={styles.historyGiftValue}>{formatCurrency(gift.value)}</Text>
+                          </View>
+                          {gift.eventName && (
+                            <Text style={styles.historyGiftEventName}>
+                              📅 {gift.eventName}
+                              {gift.eventDate ? ` · ${formatHistoryDate(gift.eventDate)}` : ''}
+                            </Text>
+                          )}
+                          {gift.direction && (
+                            <Text style={styles.historyDirection}>
+                              {gift.direction === 'received' ? '📥 Received' : '📤 Given'}
+                            </Text>
+                          )}
+                          {gift.description ? (
+                            <Text style={styles.historyGiftDesc}>{gift.description}</Text>
+                          ) : null}
+                        </View>
+                        {index < customerGifts.length - 1 && (
+                          <Divider style={styles.historyDivider} />
+                        )}
+                      </View>
+                    ))}
+                </>
+              ) : (
+                <View style={styles.historyEmpty}>
+                  <Text style={styles.historyEmptyText}>No gifts recorded yet</Text>
+                  <Text style={styles.historyEmptyHint}>
+                    Gifts can be added from the Event Details screen.
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -989,5 +1261,203 @@ const styles = StyleSheet.create({
   giftInput: {
     marginTop: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  // ==========================================
+  // History button styles
+  // ==========================================
+  historyButtonRow: {
+    flexDirection: 'row',
+    marginTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  historyButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    backgroundColor: '#F0F0F6',
+    borderRadius: borderRadius.sm,
+    gap: 6,
+  },
+  historyButtonIcon: {
+    fontSize: 14,
+  },
+  historyButtonText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  // ==========================================
+  // History modal styles
+  // ==========================================
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  modalTitle: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  modalSubtitle: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  modalDivider: {
+    marginVertical: spacing.sm,
+  },
+  modalLoading: {
+    paddingVertical: spacing.xl * 2,
+    alignItems: 'center',
+  },
+  modalLoadingText: {
+    marginTop: spacing.sm,
+    color: colors.textSecondary,
+  },
+  modalScroll: {
+    paddingHorizontal: spacing.md,
+  },
+  // Event history items
+  historyEventItem: {
+    paddingVertical: spacing.sm,
+  },
+  historyEventHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyEventName: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  historyBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    marginLeft: spacing.sm,
+  },
+  historyBadgeSelf: {
+    backgroundColor: '#E3F2FD',
+  },
+  historyBadgeCustomer: {
+    backgroundColor: '#FFF3E0',
+  },
+  historyBadgeText: {
+    fontSize: typography.fontSize.xs,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  historyEventDate: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  historyEventMeta: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  historyEventMetaText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+  },
+  historyDirection: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  historyDivider: {
+    marginVertical: spacing.xs,
+  },
+  // Gift history summary
+  giftSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  giftSummaryBlock: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summaryDirectionLabel: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontSize: typography.fontSize.xl,
+    fontWeight: '700',
+    color: colors.success,
+  },
+  summaryCount: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  // Gift history items
+  historyGiftItem: {
+    paddingVertical: spacing.sm,
+  },
+  historyGiftHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyGiftType: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  historyGiftValue: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.success,
+  },
+  historyGiftEventName: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  historyGiftDesc: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    fontStyle: 'italic',
+  },
+  // Empty states
+  historyEmpty: {
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+  },
+  historyEmptyText: {
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    fontSize: typography.fontSize.base,
+  },
+  historyEmptyHint: {
+    color: colors.textSecondary,
+    fontSize: typography.fontSize.sm,
+    marginTop: spacing.xs,
+    textAlign: 'center',
   },
 });

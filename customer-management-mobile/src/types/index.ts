@@ -276,6 +276,12 @@ export interface CustomerGiftsResponse {
   count: number;
 }
 
+export interface CustomerEventsResponse {
+  customerId: string;
+  events: EventCustomer[];
+  count: number;
+}
+
 // ============================================================================
 // Admin Types (Superadmin only)
 // ============================================================================

@@ -39,6 +39,7 @@ export const API_ENDPOINTS = {
   CUSTOMERS: {
     BASE: '/api/customers',
     SHOW: '/api/customers/show',
+    EVENTS: '/api/customers/events',
   },
 
   // Events (Standalone - managed by Super Admin)

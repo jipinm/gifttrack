@@ -4,6 +4,7 @@ import type {
   Customer,
   CustomerInput,
   CustomerFilters,
+  CustomerEventsResponse,
   ApiResponse,
   PaginatedResponse,
 } from '../types';
@@ -67,5 +68,14 @@ export const customerService = {
    */
   delete: async (id: string): Promise<ApiResponse<void>> => {
     return await api.delete<void>(`${API_ENDPOINTS.CUSTOMERS.SHOW}?id=${id}`);
+  },
+
+  /**
+   * Get events associated with a customer
+   */
+  getCustomerEvents: async (customerId: string): Promise<ApiResponse<CustomerEventsResponse>> => {
+    return await api.get<CustomerEventsResponse>(
+      `${API_ENDPOINTS.CUSTOMERS.EVENTS}?customerId=${customerId}`
+    );
   },
 };
