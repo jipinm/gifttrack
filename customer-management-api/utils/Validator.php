@@ -207,7 +207,7 @@ class Validator {
      * @return string Sanitized value
      */
     public static function sanitize($value) {
-        return htmlspecialchars(strip_tags(trim($value)), ENT_QUOTES, 'UTF-8');
+        return strip_tags(trim($value));
     }
     
     /**

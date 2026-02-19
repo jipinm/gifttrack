@@ -6,6 +6,25 @@
 
 class Response {
     /**
+     * Recursively decode HTML entities in all string values.
+     * Fixes legacy data stored with htmlspecialchars encoding (e.g. &#039; → ')
+     *
+     * @param mixed $data
+     * @return mixed
+     */
+    private static function decodeHtmlEntities($data) {
+        if (is_string($data)) {
+            return html_entity_decode($data, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                $data[$key] = self::decodeHtmlEntities($value);
+            }
+        }
+        return $data;
+    }
+
+    /**
      * Send success response
      * 
      * @param mixed $data Response data
@@ -18,7 +37,7 @@ class Response {
         $response = ['success' => true];
         
         if ($data !== null) {
-            $response['data'] = $data;
+            $response['data'] = self::decodeHtmlEntities($data);
         }
         
         if (!empty($message)) {
