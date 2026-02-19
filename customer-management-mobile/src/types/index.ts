@@ -131,6 +131,7 @@ export interface CustomerFilters {
   districtId?: number;
   cityId?: number;
   eventId?: string;
+  eventDate?: string;
   careOfId?: number;
   invitationStatusId?: number;
   giftStatus?: 'gifted' | 'not_gifted';

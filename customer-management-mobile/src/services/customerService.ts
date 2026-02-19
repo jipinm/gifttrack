@@ -24,6 +24,7 @@ export const customerService = {
       if (filters.districtId) params.append('districtId', filters.districtId.toString());
       if (filters.cityId) params.append('cityId', filters.cityId.toString());
       if (filters.eventId) params.append('eventId', filters.eventId);
+      if (filters.eventDate) params.append('eventDate', filters.eventDate);
       if (filters.careOfId) params.append('careOfId', filters.careOfId.toString());
       if (filters.invitationStatusId) params.append('invitationStatusId', filters.invitationStatusId.toString());
       if (filters.giftStatus) params.append('giftStatus', filters.giftStatus);

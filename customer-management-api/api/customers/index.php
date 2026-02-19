@@ -57,6 +57,10 @@ if ($method === 'GET') {
             $filters['eventId'] = $_GET['eventId'];
         }
         
+        if (isset($_GET['eventDate']) && !empty($_GET['eventDate'])) {
+            $filters['eventDate'] = $_GET['eventDate'];
+        }
+        
         if (isset($_GET['careOfId']) && !empty($_GET['careOfId'])) {
             $filters['careOfId'] = (int)$_GET['careOfId'];
         }

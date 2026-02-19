@@ -74,7 +74,10 @@ class EventCustomer {
     public function getByCustomerId($customerId, $paginator = null) {
         try {
             if ($paginator) {
-                $countSql = "SELECT COUNT(*) as total FROM event_customers WHERE customer_id = :customerId";
+                $countSql = "SELECT COUNT(*) as total 
+                             FROM event_customers ec 
+                             INNER JOIN events e ON e.id = ec.event_id AND e.deleted_at IS NULL
+                             WHERE ec.customer_id = :customerId";
                 $countStmt = $this->connection->prepare($countSql);
                 $countStmt->execute(['customerId' => $customerId]);
                 $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
@@ -92,19 +95,14 @@ class EventCustomer {
                         ist.name as invitation_status_name,
                         co.name as care_of_name,
                         ua.name as attached_by_name,
-                        g.id as gift_id,
-                        g.gift_type_id,
-                        gt.name as gift_type_name,
-                        g.value as gift_value,
-                        g.description as gift_description
+                        (SELECT COUNT(*) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as gift_count,
+                        (SELECT COALESCE(SUM(g.value), 0) FROM gifts g WHERE g.event_id = ec.event_id AND g.customer_id = ec.customer_id) as total_gift_value
                     FROM event_customers ec
-                    INNER JOIN events e ON ec.event_id = e.id
+                    INNER JOIN events e ON ec.event_id = e.id AND e.deleted_at IS NULL
                     LEFT JOIN event_types et ON e.event_type_id = et.id
                     LEFT JOIN invitation_status ist ON ec.invitation_status_id = ist.id
                     LEFT JOIN care_of_options co ON ec.care_of_id = co.id
                     LEFT JOIN users ua ON ec.attached_by = ua.id
-                    LEFT JOIN gifts g ON g.event_id = ec.event_id AND g.customer_id = ec.customer_id
-                    LEFT JOIN gift_types gt ON g.gift_type_id = gt.id
                     WHERE ec.customer_id = :customerId
                     ORDER BY e.event_date DESC";
             

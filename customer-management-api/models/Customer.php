@@ -81,6 +81,18 @@ class Customer {
                 $params['cityId'] = $filters['cityId'];
             }
             
+            // Event date filter — customers attached to events on a specific date
+            if (!empty($filters['eventDate'])) {
+                $whereClause .= " AND EXISTS (
+                    SELECT 1 FROM event_customers ec_dt
+                    INNER JOIN events e_dt ON e_dt.id = ec_dt.event_id
+                    WHERE ec_dt.customer_id = c.id
+                      AND e_dt.event_date = :eventDate
+                      AND e_dt.deleted_at IS NULL
+                )";
+                $params['eventDate'] = $filters['eventDate'];
+            }
+            
             // If paginator is provided, get total count first
             if ($paginator) {
                 $countSql = "SELECT COUNT(DISTINCT c.id) as total FROM customers c " . $joins . " " . $whereClause;
