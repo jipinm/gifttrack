@@ -5,10 +5,10 @@
  */
 import React, { useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NavigationProp } from '@react-navigation/native';
 import MainTabNavigator from './MainTabNavigator';
 import { TodayEventsNotification } from '../components/Notifications';
-import type { CustomerStackParamList } from './CustomerStackNavigator';
+import type { MainTabParamList } from './MainTabNavigator';
 
 // Re-export navigation types from stack navigators
 export type { CustomerStackParamList } from './CustomerStackNavigator';
@@ -16,16 +16,17 @@ export type { AdminStackParamList } from './AdminStackNavigator';
 export type { ProfileStackParamList } from './ProfileStackNavigator';
 export type { MainTabParamList } from './MainTabNavigator';
 
-type NavigationProp = NativeStackNavigationProp<CustomerStackParamList>;
-
 export default function AppNavigator() {
-  const navigation = useNavigation<NavigationProp>();
+  const navigation = useNavigation<NavigationProp<MainTabParamList>>();
 
-  // Handle navigation to customer details from notification
-  const handleNavigateToCustomer = useCallback(
-    (customerId: string) => {
-      // Navigate to customer details
-      navigation.navigate('CustomerDetails', { customerId });
+  // Handle navigation to event details from notification
+  const handleNavigateToEvent = useCallback(
+    (eventId: string) => {
+      // Navigate to EventDetails inside EventsTab stack
+      (navigation as any).navigate('EventsTab', {
+        screen: 'EventDetails',
+        params: { eventId },
+      });
     },
     [navigation]
   );
@@ -33,7 +34,7 @@ export default function AppNavigator() {
   return (
     <>
       <MainTabNavigator />
-      <TodayEventsNotification onNavigateToCustomer={handleNavigateToCustomer} />
+      <TodayEventsNotification onNavigateToEvent={handleNavigateToEvent} />
     </>
   );
 }

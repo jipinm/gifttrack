@@ -4,27 +4,27 @@
  * Features: sound notification, remind later, do not display again, close
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, StyleSheet, Vibration } from 'react-native';
+import { View, StyleSheet, Vibration, Pressable } from 'react-native';
 import { Modal, Portal, Text, Button, IconButton, Card, Divider } from 'react-native-paper';
-import { customerService } from '../../services/customerService';
+import { eventService } from '../../services/eventService';
 import { storage } from '../../utils/storage';
 import { playAlertSound, unloadAlertSound } from '../../utils/alertSound';
 import { colors, spacing, borderRadius, shadows, typography } from '../../styles/theme';
-import type { Customer } from '../../types';
+import type { Event } from '../../types';
 
 const STORAGE_KEY_HIDE_TODAY_EVENTS = '@hideToday EventsNotification';
 const STORAGE_KEY_REMIND_LATER = '@remindLaterTimestamp';
 const REMIND_LATER_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
 
 interface TodayEventsNotificationProps {
-  onNavigateToCustomer?: (customerId: string) => void;
+  onNavigateToEvent?: (eventId: string) => void;
 }
 
 export default function TodayEventsNotification({
-  onNavigateToCustomer,
+  onNavigateToEvent,
 }: TodayEventsNotificationProps) {
   const [visible, setVisible] = useState(false);
-  const [todayCustomers, setTodayCustomers] = useState<Customer[]>([]);
+  const [todayEvents, setTodayEvents] = useState<Event[]>([]);
   const hasChecked = useRef(false);
 
   // Format today's date as YYYY-MM-DD
@@ -60,7 +60,7 @@ export default function TodayEventsNotification({
     }
   }, []);
 
-  // Fetch customers with today's events
+  // Fetch events scheduled for today
   const fetchTodayEvents = useCallback(async () => {
     try {
       const shouldShow = await shouldShowNotification();
@@ -69,24 +69,28 @@ export default function TodayEventsNotification({
       }
 
       const todayDate = getTodayDateString();
-      const response = await customerService.getAll({
-        eventDate: todayDate,
+      const response = await eventService.getAll({
+        dateFrom: todayDate,
+        dateTo: todayDate,
         page: 1,
-        perPage: 100, // Get up to 100 customers with today's events
+        perPage: 100,
       });
 
       if (response.success && response.data) {
-        let customers: Customer[] = [];
+        let events: Event[] = [];
+        const raw = response.data as any;
         
-        // Handle paginated or non-paginated response
-        if ('data' in response.data && Array.isArray(response.data.data)) {
-          customers = response.data.data;
-        } else if (Array.isArray(response.data)) {
-          customers = response.data;
+        // Handle API shape: { events: [...], pagination: {...} } or { data: [...] }
+        if (Array.isArray(raw.events)) {
+          events = raw.events;
+        } else if (Array.isArray(raw.data)) {
+          events = raw.data;
+        } else if (Array.isArray(raw)) {
+          events = raw;
         }
 
-        if (customers.length > 0) {
-          setTodayCustomers(customers);
+        if (events.length > 0) {
+          setTodayEvents(events);
           setVisible(true);
           
           // Play alert sound + vibration
@@ -135,18 +139,18 @@ export default function TodayEventsNotification({
     }
   }, []);
 
-  // Handle customer tap
-  const handleCustomerTap = useCallback(
-    (customerId: string) => {
+  // Handle event tap
+  const handleEventTap = useCallback(
+    (eventId: string) => {
       setVisible(false);
-      if (onNavigateToCustomer) {
-        onNavigateToCustomer(customerId);
+      if (onNavigateToEvent) {
+        onNavigateToEvent(eventId);
       }
     },
-    [onNavigateToCustomer]
+    [onNavigateToEvent]
   );
 
-  if (!visible || todayCustomers.length === 0) {
+  if (!visible || todayEvents.length === 0) {
     return null;
   }
 
@@ -178,40 +182,42 @@ export default function TodayEventsNotification({
           <View style={styles.messageContainer}>
             <Text style={styles.messageText}>
               You have{' '}
-              <Text style={styles.countText}>{todayCustomers.length}</Text>
-              {todayCustomers.length === 1 ? ' event' : ' events'} scheduled for today!
+              <Text style={styles.countText}>{todayEvents.length}</Text>
+              {todayEvents.length === 1 ? ' event' : ' events'} scheduled for today!
             </Text>
           </View>
 
-          {/* Customer list (show up to 5) */}
-          <View style={styles.customerList}>
-            {todayCustomers.slice(0, 5).map((customer, index) => (
-              <View key={customer.id}>
-                <View
-                  style={styles.customerItem}
+          {/* Event list (show up to 5) */}
+          <View style={styles.eventList}>
+            {todayEvents.slice(0, 5).map((event, index) => (
+              <View key={event.id}>
+                <Pressable
+                  style={styles.eventItem}
+                  onPress={() => handleEventTap(event.id)}
+                  android_ripple={{ color: colors.primaryLight }}
                 >
-                  <View style={styles.customerInfo}>
-                    <Text style={styles.customerName}>{customer.name}</Text>
-                    <Text style={styles.customerDetail}>
-                      Event • {customer.mobileNumber}
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventName} numberOfLines={1}>{event.name}</Text>
+                    <Text style={styles.eventDetail} numberOfLines={1}>
+                      {event.eventType?.name} • {event.customerCount ?? 0} {(event.customerCount ?? 0) === 1 ? 'customer' : 'customers'}
                     </Text>
                   </View>
                   <IconButton
                     icon="chevron-right"
                     size={20}
                     iconColor={colors.gray400}
-                    onPress={() => handleCustomerTap(customer.id)}
+                    onPress={() => handleEventTap(event.id)}
                   />
-                </View>
-                {index < Math.min(todayCustomers.length, 5) - 1 && (
-                  <Divider style={styles.customerDivider} />
+                </Pressable>
+                {index < Math.min(todayEvents.length, 5) - 1 && (
+                  <Divider style={styles.eventDivider} />
                 )}
               </View>
             ))}
             
-            {todayCustomers.length > 5 && (
+            {todayEvents.length > 5 && (
               <Text style={styles.moreText}>
-                +{todayCustomers.length - 5} more events
+                +{todayEvents.length - 5} more events
               </Text>
             )}
           </View>
@@ -299,31 +305,31 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: typography.fontSize.lg,
   },
-  customerList: {
+  eventList: {
     padding: spacing.sm,
     maxHeight: 300,
   },
-  customerItem: {
+  eventItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
   },
-  customerInfo: {
+  eventInfo: {
     flex: 1,
   },
-  customerName: {
+  eventName: {
     fontSize: typography.fontSize.md,
     fontWeight: typography.fontWeight.semibold as '600',
     color: colors.textPrimary,
   },
-  customerDetail: {
+  eventDetail: {
     fontSize: typography.fontSize.sm,
     color: colors.textSecondary,
     marginTop: 2,
   },
-  customerDivider: {
+  eventDivider: {
     marginHorizontal: spacing.sm,
   },
   moreText: {
