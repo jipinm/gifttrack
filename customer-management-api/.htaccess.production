@@ -48,6 +48,9 @@ Options -MultiViews
     # ==================================================
     # Customer Routes (RESTful)
     # ==================================================
+    # GET /api/customers/events?customerId={id} - Customer event history
+    RewriteRule ^api/customers/events/?$ api/customers/events.php [L,QSA]
+    
     # GET/POST /api/customers
     RewriteRule ^api/customers/?$ api/customers/index.php [L,QSA]
     
