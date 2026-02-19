@@ -6,7 +6,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, StyleSheet, Alert, Platform, TouchableOpacity, FlatList, ScrollView, Modal } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   TextInput,
   Button,
@@ -52,7 +52,6 @@ type NavigationProp = NativeStackNavigationProp<EventStackParamList, 'CreateEven
 
 export default function CreateEventScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const insets = useSafeAreaInsets();
 
   // ==========================================
   // Event form state
@@ -910,9 +909,10 @@ export default function CreateEventScreen() {
       animationType="slide"
       transparent
       onRequestClose={handleCloseHistoryModal}
+      statusBarTranslucent
     >
-      <View style={styles.modalOverlay}>
-        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, spacing.lg) }]}>
+      <SafeAreaView style={styles.modalOverlay} edges={['bottom']}>
+        <View style={styles.modalContainer}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
@@ -1076,7 +1076,7 @@ export default function CreateEventScreen() {
             </ScrollView>
           )}
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
     </>
   );
@@ -1303,6 +1303,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
+    paddingBottom: spacing.md,
   },
   modalHeader: {
     flexDirection: 'row',
