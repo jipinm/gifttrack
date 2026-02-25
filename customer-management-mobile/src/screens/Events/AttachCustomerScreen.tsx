@@ -14,6 +14,9 @@ import {
   StyleSheet,
   Alert,
   TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   Text,
@@ -282,7 +285,16 @@ export default function AttachCustomerScreen() {
 
       {/* Selected Customer + Attachment Options */}
       {selectedCustomer && (
-        <View style={styles.formSection}>
+        <KeyboardAvoidingView
+          style={styles.formSection}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+        >
+        <ScrollView
+          contentContainerStyle={styles.formScrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Selected customer card */}
           <View style={styles.selectedCard}>
             <View style={styles.selectedHeader}>
@@ -383,7 +395,8 @@ export default function AttachCustomerScreen() {
               Attach Customer
             </Button>
           </View>
-        </View>
+        </ScrollView>
+        </KeyboardAvoidingView>
       )}
     </View>
   );
@@ -455,7 +468,10 @@ const styles = StyleSheet.create({
   },
   formSection: {
     flex: 1,
+  },
+  formScrollContent: {
     padding: spacing.md,
+    paddingBottom: 120,
   },
   selectedCard: {
     backgroundColor: colors.surface,

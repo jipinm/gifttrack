@@ -35,7 +35,8 @@ function CustomerCard({ customer, onPress }: CustomerCardProps) {
     }).start();
   };
 
-  const formatMobile = (mobile: string): string => {
+  const formatMobile = (mobile: string | undefined): string => {
+    if (!mobile) return '';
     if (mobile.length === 10) {
       return `${mobile.slice(0, 5)} ${mobile.slice(5)}`;
     }
@@ -73,10 +74,12 @@ function CustomerCard({ customer, onPress }: CustomerCardProps) {
             </View>
 
             {/* Mobile Number */}
+            {customer.mobileNumber ? (
             <View style={styles.row}>
               <Text style={styles.icon}>📱</Text>
               <Text style={styles.value}>{formatMobile(customer.mobileNumber)}</Text>
             </View>
+            ) : null}
 
             {/* Location */}
             <View style={styles.row}>

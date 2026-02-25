@@ -89,7 +89,7 @@ export interface MasterData {
 export interface Customer {
   id: string;
   name: string;
-  mobileNumber: string;
+  mobileNumber?: string;
   address: string;
   state: {
     id: number;
@@ -117,7 +117,7 @@ export interface Customer {
 
 export interface CustomerInput {
   name: string;
-  mobileNumber: string;
+  mobileNumber?: string | null;
   address: string;
   stateId?: number;
   districtId: number;

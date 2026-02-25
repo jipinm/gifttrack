@@ -1,0 +1,449 @@
+-- --------------------------------------------------------
+-- Clean Server Import
+-- Database:   customer_management_db
+-- Purpose:    Fresh production import - all transactional data flushed.
+--             Retains only: Super Admin user, all reference/lookup data.
+-- Generated:  2026-02-24
+-- --------------------------------------------------------
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+-- --------------------------------------------------------
+-- Drop all tables and views in dependency-safe order
+-- --------------------------------------------------------
+DROP VIEW  IF EXISTS `v_events_with_customers_gifts`;
+DROP TABLE IF EXISTS `gifts`;
+DROP TABLE IF EXISTS `event_customers`;
+DROP TABLE IF EXISTS `events`;
+DROP TABLE IF EXISTS `customers`;
+DROP TABLE IF EXISTS `care_of_options`;
+DROP TABLE IF EXISTS `invitation_status`;
+DROP TABLE IF EXISTS `event_types`;
+DROP TABLE IF EXISTS `gift_types`;
+DROP TABLE IF EXISTS `cities`;
+DROP TABLE IF EXISTS `districts`;
+DROP TABLE IF EXISTS `states`;
+DROP TABLE IF EXISTS `users`;
+
+-- --------------------------------------------------------
+-- Table structure: users
+-- (Created first — referenced by most other tables)
+-- --------------------------------------------------------
+CREATE TABLE `users` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `name` varchar(255) NOT NULL,
+  `mobile_number` varchar(10) NOT NULL,
+  `password` varchar(255) NOT NULL COMMENT 'Hashed password',
+  `address` text DEFAULT NULL,
+  `state_id` int(11) DEFAULT NULL,
+  `district_id` int(11) DEFAULT NULL,
+  `city_id` int(11) DEFAULT NULL,
+  `place` varchar(255) DEFAULT NULL,
+  `branch` varchar(255) DEFAULT NULL,
+  `role` enum('admin','superadmin') NOT NULL DEFAULT 'admin',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `mobile_number` (`mobile_number`),
+  KEY `idx_mobile` (`mobile_number`),
+  KEY `idx_role` (`role`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_users_state_id` (`state_id`),
+  KEY `idx_users_district_id` (`district_id`),
+  KEY `idx_users_city_id` (`city_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: states
+-- --------------------------------------------------------
+CREATE TABLE `states` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `code` varchar(10) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: districts
+-- --------------------------------------------------------
+CREATE TABLE `districts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `state_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_state` (`state_id`),
+  CONSTRAINT `districts_ibfk_1` FOREIGN KEY (`state_id`) REFERENCES `states` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: cities
+-- --------------------------------------------------------
+CREATE TABLE `cities` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `district_id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_district` (`district_id`),
+  CONSTRAINT `cities_ibfk_1` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=89 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: event_types
+-- --------------------------------------------------------
+CREATE TABLE `event_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`),
+  KEY `idx_event_types_active` (`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: gift_types
+-- --------------------------------------------------------
+CREATE TABLE `gift_types` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`),
+  KEY `idx_gift_types_active` (`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: invitation_status
+-- --------------------------------------------------------
+CREATE TABLE `invitation_status` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`),
+  KEY `idx_invitation_status_active` (`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: care_of_options
+-- --------------------------------------------------------
+CREATE TABLE `care_of_options` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_default` tinyint(1) NOT NULL DEFAULT 0,
+  `created_by` varchar(36) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_name_per_user` (`name`,`created_by`),
+  KEY `idx_care_of_options_active` (`is_active`),
+  KEY `idx_care_of_options_created_by` (`created_by`),
+  CONSTRAINT `care_of_options_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: customers
+-- --------------------------------------------------------
+CREATE TABLE `customers` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `name` varchar(255) NOT NULL,
+  `mobile_number` varchar(10) DEFAULT NULL,
+  `address` text NOT NULL,
+  `district_id` int(11) NOT NULL COMMENT 'FK to districts table',
+  `city_id` int(11) NOT NULL COMMENT 'FK to cities table',
+  `state_id` int(11) NOT NULL COMMENT 'FK to states table',
+  `notes` text DEFAULT NULL COMMENT 'Additional notes about customer',
+  `created_by` varchar(36) DEFAULT NULL COMMENT 'Admin user ID who created this customer',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `state_id` (`state_id`),
+  KEY `idx_district` (`district_id`),
+  KEY `idx_city` (`city_id`),
+  KEY `idx_created_by` (`created_by`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `customers_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `customers_ibfk_2` FOREIGN KEY (`state_id`) REFERENCES `states` (`id`),
+  CONSTRAINT `customers_ibfk_3` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`),
+  CONSTRAINT `customers_ibfk_4` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: events
+-- --------------------------------------------------------
+CREATE TABLE `events` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `name` varchar(255) NOT NULL COMMENT 'Event name',
+  `event_date` date NOT NULL COMMENT 'Date of the event',
+  `event_type_id` int(11) NOT NULL COMMENT 'FK to event_types table',
+  `event_category` enum('self_event','customer_event') NOT NULL DEFAULT 'self_event' COMMENT 'Self Event or Customer Event',
+  `notes` text DEFAULT NULL COMMENT 'Event notes',
+  `created_by` varchar(36) NOT NULL COMMENT 'Super Admin who created the event',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_event_date` (`event_date`),
+  KEY `idx_event_type` (`event_type_id`),
+  KEY `idx_event_category` (`event_category`),
+  KEY `idx_created_by` (`created_by`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_events_deleted_at` (`deleted_at`),
+  CONSTRAINT `events_ibfk_1` FOREIGN KEY (`event_type_id`) REFERENCES `event_types` (`id`),
+  CONSTRAINT `events_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: event_customers
+-- --------------------------------------------------------
+CREATE TABLE `event_customers` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `event_id` varchar(36) NOT NULL COMMENT 'FK to events table',
+  `customer_id` varchar(36) NOT NULL COMMENT 'FK to customers table',
+  `invitation_status_id` int(11) DEFAULT 1 COMMENT 'FK to invitation_status (Default: Called)',
+  `care_of_id` int(11) DEFAULT NULL COMMENT 'FK to care_of_options (Required for self_event)',
+  `attached_by` varchar(36) NOT NULL COMMENT 'User who attached the customer',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_event_customer` (`event_id`,`customer_id`),
+  KEY `idx_event_id` (`event_id`),
+  KEY `idx_customer_id` (`customer_id`),
+  KEY `idx_invitation_status` (`invitation_status_id`),
+  KEY `idx_attached_by` (`attached_by`),
+  KEY `event_customers_ibfk_4` (`care_of_id`),
+  CONSTRAINT `event_customers_ibfk_1` FOREIGN KEY (`event_id`) REFERENCES `events` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `event_customers_ibfk_2` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `event_customers_ibfk_3` FOREIGN KEY (`invitation_status_id`) REFERENCES `invitation_status` (`id`),
+  CONSTRAINT `event_customers_ibfk_4` FOREIGN KEY (`care_of_id`) REFERENCES `care_of_options` (`id`),
+  CONSTRAINT `event_customers_ibfk_5` FOREIGN KEY (`attached_by`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure: gifts
+-- --------------------------------------------------------
+CREATE TABLE `gifts` (
+  `id` varchar(36) NOT NULL COMMENT 'UUID',
+  `event_id` varchar(36) NOT NULL COMMENT 'FK to customer_events table',
+  `customer_id` varchar(36) NOT NULL,
+  `gift_type_id` int(11) NOT NULL COMMENT 'FK to gift_types table',
+  `value` decimal(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Gift value in currency',
+  `description` text DEFAULT NULL COMMENT 'Gift description/details',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_customer` (`customer_id`),
+  KEY `idx_gift_type` (`gift_type_id`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_gift_event` (`event_id`),
+  CONSTRAINT `fk_gifts_event_new` FOREIGN KEY (`event_id`) REFERENCES `events` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `gifts_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `gifts_ibfk_2` FOREIGN KEY (`gift_type_id`) REFERENCES `gift_types` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- DATA: users — Super Admin only
+-- --------------------------------------------------------
+INSERT INTO `users` (`id`, `name`, `mobile_number`, `password`, `address`, `state_id`, `district_id`, `city_id`, `place`, `branch`, `role`, `created_at`, `updated_at`) VALUES
+	('7e2ac996-01bb-11f1-9edc-7008945b491c', 'Super Admin', '9999999999', '$2y$10$6/N/oZ9sCyVqcLjqHPBjxu/E6GMCSPHhPSk5hynVjhoRpmtOFUeKm', 'Head Office, Main Street', NULL, NULL, NULL, 'Kochi', 'Headquarters', 'superadmin', '2026-02-04 11:20:21', '2026-02-14 17:00:17');
+
+-- --------------------------------------------------------
+-- DATA: states
+-- --------------------------------------------------------
+INSERT INTO `states` (`id`, `name`, `code`, `created_at`) VALUES
+	(1, 'Kerala', 'KL', '2026-02-04 11:58:06');
+
+-- --------------------------------------------------------
+-- DATA: districts
+-- --------------------------------------------------------
+INSERT INTO `districts` (`id`, `state_id`, `name`, `created_at`) VALUES
+	(1, 1, 'Thiruvananthapuram', '2026-02-04 11:58:06'),
+	(2, 1, 'Kollam', '2026-02-04 11:58:06'),
+	(3, 1, 'Pathanamthitta', '2026-02-04 11:58:06'),
+	(4, 1, 'Alappuzha', '2026-02-04 11:58:06'),
+	(5, 1, 'Kottayam', '2026-02-04 11:58:06'),
+	(6, 1, 'Idukki', '2026-02-04 11:58:06'),
+	(7, 1, 'Ernakulam', '2026-02-04 11:58:06'),
+	(8, 1, 'Thrissur', '2026-02-04 11:58:06'),
+	(9, 1, 'Palakkad', '2026-02-04 11:58:06'),
+	(10, 1, 'Malappuram', '2026-02-04 11:58:06'),
+	(11, 1, 'Kozhikode', '2026-02-04 11:58:06'),
+	(12, 1, 'Wayanad', '2026-02-04 11:58:06'),
+	(13, 1, 'Kannur', '2026-02-04 11:58:06'),
+	(14, 1, 'Kasaragod', '2026-02-04 11:58:06');
+
+-- --------------------------------------------------------
+-- DATA: cities
+-- --------------------------------------------------------
+INSERT INTO `cities` (`id`, `district_id`, `name`, `created_at`) VALUES
+	(1, 1, 'Thiruvananthapuram', '2026-02-04 11:58:06'),
+	(2, 1, 'Neyyattinkara', '2026-02-04 11:58:06'),
+	(3, 1, 'Attingal', '2026-02-04 11:58:06'),
+	(4, 1, 'Varkala', '2026-02-04 11:58:06'),
+	(5, 1, 'Nedumangad', '2026-02-04 11:58:06'),
+	(6, 1, 'Kazhakootam', '2026-02-04 11:58:06'),
+	(7, 1, 'Kovalam', '2026-02-04 11:58:06'),
+	(8, 2, 'Kollam', '2026-02-04 11:58:06'),
+	(9, 2, 'Karunagappally', '2026-02-04 11:58:06'),
+	(10, 2, 'Punalur', '2026-02-04 11:58:06'),
+	(11, 2, 'Paravur', '2026-02-04 11:58:06'),
+	(12, 2, 'Kottarakkara', '2026-02-04 11:58:06'),
+	(13, 2, 'Chavara', '2026-02-04 11:58:06'),
+	(14, 3, 'Pathanamthitta', '2026-02-04 11:58:06'),
+	(15, 3, 'Adoor', '2026-02-04 11:58:06'),
+	(16, 3, 'Thiruvalla', '2026-02-04 11:58:06'),
+	(17, 3, 'Ranni', '2026-02-04 11:58:06'),
+	(18, 3, 'Konni', '2026-02-04 11:58:06'),
+	(19, 3, 'Pandalam', '2026-02-04 11:58:06'),
+	(20, 4, 'Alappuzha', '2026-02-04 11:58:06'),
+	(21, 4, 'Cherthala', '2026-02-04 11:58:06'),
+	(22, 4, 'Kayamkulam', '2026-02-04 11:58:06'),
+	(23, 4, 'Haripad', '2026-02-04 11:58:06'),
+	(24, 4, 'Mavelikkara', '2026-02-04 11:58:06'),
+	(25, 4, 'Chengannur', '2026-02-04 11:58:06'),
+	(26, 5, 'Kottayam', '2026-02-04 11:58:06'),
+	(27, 5, 'Pala', '2026-02-04 11:58:06'),
+	(28, 5, 'Changanassery', '2026-02-04 11:58:06'),
+	(29, 5, 'Ettumanoor', '2026-02-04 11:58:06'),
+	(30, 5, 'Vaikom', '2026-02-04 11:58:06'),
+	(31, 5, 'Erattupetta', '2026-02-04 11:58:06'),
+	(32, 6, 'Thodupuzha', '2026-02-04 11:58:06'),
+	(33, 6, 'Munnar', '2026-02-04 11:58:06'),
+	(34, 6, 'Kattappana', '2026-02-04 11:58:06'),
+	(35, 6, 'Adimaly', '2026-02-04 11:58:06'),
+	(36, 6, 'Nedumkandam', '2026-02-04 11:58:06'),
+	(37, 6, 'Kumily', '2026-02-04 11:58:06'),
+	(38, 7, 'Kochi', '2026-02-04 11:58:06'),
+	(39, 7, 'Aluva', '2026-02-04 11:58:06'),
+	(40, 7, 'Perumbavoor', '2026-02-04 11:58:06'),
+	(41, 7, 'Kothamangalam', '2026-02-04 11:58:06'),
+	(42, 7, 'Muvattupuzha', '2026-02-04 11:58:06'),
+	(43, 7, 'Angamaly', '2026-02-04 11:58:06'),
+	(44, 7, 'Kalamassery', '2026-02-04 11:58:06'),
+	(45, 7, 'Thrikkakara', '2026-02-04 11:58:06'),
+	(46, 7, 'Vypeen', '2026-02-04 11:58:06'),
+	(47, 7, 'North Paravur', '2026-02-04 11:58:06'),
+	(48, 8, 'Thrissur', '2026-02-04 11:58:06'),
+	(49, 8, 'Chalakudy', '2026-02-04 11:58:06'),
+	(50, 8, 'Kodungallur', '2026-02-04 11:58:06'),
+	(51, 8, 'Irinjalakuda', '2026-02-04 11:58:06'),
+	(52, 8, 'Wadakkanchery', '2026-02-04 11:58:06'),
+	(53, 8, 'Guruvayur', '2026-02-04 11:58:06'),
+	(54, 8, 'Kunnamkulam', '2026-02-04 11:58:06'),
+	(55, 9, 'Palakkad', '2026-02-04 11:58:06'),
+	(56, 9, 'Ottapalam', '2026-02-04 11:58:06'),
+	(57, 9, 'Shoranur', '2026-02-04 11:58:06'),
+	(58, 9, 'Mannarkkad', '2026-02-04 11:58:06'),
+	(59, 9, 'Cherpulassery', '2026-02-04 11:58:06'),
+	(60, 9, 'Chittur', '2026-02-04 11:58:06'),
+	(61, 10, 'Malappuram', '2026-02-04 11:58:06'),
+	(62, 10, 'Manjeri', '2026-02-04 11:58:06'),
+	(63, 10, 'Tirur', '2026-02-04 11:58:06'),
+	(64, 10, 'Perinthalmanna', '2026-02-04 11:58:06'),
+	(65, 10, 'Ponnani', '2026-02-04 11:58:06'),
+	(66, 10, 'Nilambur', '2026-02-04 11:58:06'),
+	(67, 10, 'Kondotty', '2026-02-04 11:58:06'),
+	(68, 11, 'Kozhikode', '2026-02-04 11:58:06'),
+	(69, 11, 'Vadakara', '2026-02-04 11:58:06'),
+	(70, 11, 'Koyilandy', '2026-02-04 11:58:06'),
+	(71, 11, 'Thamarassery', '2026-02-04 11:58:06'),
+	(72, 11, 'Feroke', '2026-02-04 11:58:06'),
+	(73, 11, 'Ramanattukara', '2026-02-04 11:58:06'),
+	(74, 12, 'Kalpetta', '2026-02-04 11:58:06'),
+	(75, 12, 'Sulthan Bathery', '2026-02-04 11:58:06'),
+	(76, 12, 'Mananthavady', '2026-02-04 11:58:06'),
+	(77, 12, 'Vythiri', '2026-02-04 11:58:06'),
+	(78, 13, 'Kannur', '2026-02-04 11:58:06'),
+	(79, 13, 'Thalassery', '2026-02-04 11:58:06'),
+	(80, 13, 'Payyanur', '2026-02-04 11:58:06'),
+	(81, 13, 'Mattannur', '2026-02-04 11:58:06'),
+	(82, 13, 'Taliparamba', '2026-02-04 11:58:06'),
+	(83, 13, 'Iritty', '2026-02-04 11:58:06'),
+	(84, 14, 'Kasaragod', '2026-02-04 11:58:06'),
+	(85, 14, 'Kanhangad', '2026-02-04 11:58:06'),
+	(86, 14, 'Nileshwar', '2026-02-04 11:58:06'),
+	(87, 14, 'Uppala', '2026-02-04 11:58:06'),
+	(88, 14, 'Manjeshwar', '2026-02-04 11:58:06');
+
+-- --------------------------------------------------------
+-- DATA: event_types
+-- --------------------------------------------------------
+INSERT INTO `event_types` (`id`, `name`, `is_active`, `is_default`, `created_at`) VALUES
+	(1, 'Reception', 1, 0, '2026-02-04 11:58:06'),
+	(2, 'Wedding', 1, 1, '2026-02-04 11:58:06'),
+	(3, 'Engagement', 1, 0, '2026-02-04 11:58:06'),
+	(4, 'Birthday', 1, 0, '2026-02-04 11:58:06'),
+	(5, 'Anniversary', 1, 0, '2026-02-04 11:58:06'),
+	(6, 'House Warming', 1, 0, '2026-02-04 11:58:06'),
+	(7, 'Others', 1, 0, '2026-02-04 11:58:06');
+
+-- --------------------------------------------------------
+-- Transactional tables: customers, events, event_customers, gifts
+-- Left intentionally empty — fresh production start
+-- --------------------------------------------------------
+
+-- --------------------------------------------------------
+-- View: v_events_with_customers_gifts
+-- --------------------------------------------------------
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_events_with_customers_gifts` AS
+SELECT
+  e.id AS event_id,
+  e.name AS event_name,
+  e.event_date,
+  e.event_type_id,
+  et.name AS event_type_name,
+  e.event_category,
+  e.notes AS event_notes,
+  e.created_by AS event_created_by,
+  e.created_at AS event_created_at,
+  ec.id AS attachment_id,
+  ec.customer_id,
+  c.name AS customer_name,
+  c.mobile_number AS customer_mobile,
+  ec.invitation_status_id,
+  ist.name AS invitation_status_name,
+  ec.care_of_id,
+  co.name AS care_of_name,
+  ec.attached_by,
+  g.id AS gift_id,
+  g.gift_type_id,
+  gt.name AS gift_type_name,
+  g.value AS gift_value,
+  g.description AS gift_description,
+  CASE
+    WHEN e.event_category = 'self_event' THEN 'received'
+    WHEN e.event_category = 'customer_event' THEN 'given'
+  END AS gift_direction
+FROM events e
+LEFT JOIN event_types et ON e.event_type_id = et.id
+LEFT JOIN event_customers ec ON ec.event_id = e.id
+LEFT JOIN customers c ON ec.customer_id = c.id
+LEFT JOIN invitation_status ist ON ec.invitation_status_id = ist.id
+LEFT JOIN care_of_options co ON ec.care_of_id = co.id
+LEFT JOIN gifts g ON g.event_id = e.id AND g.customer_id = ec.customer_id
+LEFT JOIN gift_types gt ON g.gift_type_id = gt.id;
+
+-- --------------------------------------------------------
+-- Restore settings
+-- --------------------------------------------------------
+/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
+/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
+/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;

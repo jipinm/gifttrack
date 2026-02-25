@@ -33,6 +33,9 @@ export default function MasterDataFormScreen() {
   const { refreshMasterData } = useMasterData();
   const hasSuperAdminAccess = isSuperAdmin();
 
+  // Care-of options are accessible to all users (admin + superadmin)
+  const hasAccess = hasSuperAdminAccess || category === 'careOfOptions';
+
   const isEditing = !!itemId;
 
   // State
@@ -99,12 +102,12 @@ export default function MasterDataFormScreen() {
   }, [name, isEditing, itemId, category, title, navigation, refreshMasterData]);
 
   // Access check
-  if (!hasSuperAdminAccess) {
+  if (!hasAccess) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorIcon}>🔒</Text>
         <Text style={styles.errorTitle}>Access Denied</Text>
-        <Text style={styles.errorText}>Only Super Admins can manage master data.</Text>
+        <Text style={styles.errorText}>Only Super Admins can manage this data.</Text>
       </View>
     );
   }

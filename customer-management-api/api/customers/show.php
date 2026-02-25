@@ -90,11 +90,18 @@ if ($method === 'GET') {
             $updateData['name'] = Validator::sanitize($input['name']);
         }
         
-        if (isset($input['mobileNumber'])) {
-            if (!Validator::validateMobileNumber($input['mobileNumber'])) {
-                Response::error('Invalid mobile number format', 400);
+        if (array_key_exists('mobileNumber', $input)) {
+            $mobileValue = $input['mobileNumber'];
+            if (!empty($mobileValue)) {
+                // Validate format only when a non-empty value is provided
+                if (!preg_match('/^[0-9]{10}$/', $mobileValue)) {
+                    Response::error('Mobile number must be 10 digits', 400);
+                }
+                $updateData['mobileNumber'] = Validator::sanitize($mobileValue);
+            } else {
+                // Allow clearing mobile number (empty string or null)
+                $updateData['mobileNumber'] = null;
             }
-            $updateData['mobileNumber'] = Validator::sanitize($input['mobileNumber']);
         }
         
         if (isset($input['address'])) {

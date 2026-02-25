@@ -32,4 +32,20 @@ if (!$event) {
     exit;
 }
 
+// Role-based access check: Admin can only view own events + superadmin-created events
+if ($authUser['role'] !== 'superadmin') {
+    $createdBy = $event['created_by'];
+    if ($createdBy !== $authUser['id']) {
+        // Check if event was created by a superadmin
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT role FROM users WHERE id = ?");
+        $stmt->execute([$createdBy]);
+        $creator = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$creator || $creator['role'] !== 'superadmin') {
+            Response::forbidden('You do not have access to this event');
+            exit;
+        }
+    }
+}
+
 Response::success($eventModel->formatForResponse($event));

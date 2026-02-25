@@ -358,8 +358,8 @@ export default function CreateEventScreen() {
           setNewCustomerNameError('Name is required');
           hasError = true;
         }
-        if (!newCustomerMobile || !/^\d{10}$/.test(newCustomerMobile)) {
-          setNewCustomerMobileError('Valid 10-digit mobile number is required');
+        if (newCustomerMobile && !/^\d{10}$/.test(newCustomerMobile)) {
+          setNewCustomerMobileError('Mobile number must be exactly 10 digits');
           hasError = true;
         }
         if (!newCustomerAddress.trim()) {
@@ -425,7 +425,7 @@ export default function CreateEventScreen() {
           try {
             const custResponse = await customerService.create({
               name: newCustomerName.trim(),
-              mobileNumber: newCustomerMobile,
+              mobileNumber: newCustomerMobile?.trim() || undefined,
               address: newCustomerAddress.trim(),
               stateId: newCustomerStateId!,
               districtId: newCustomerDistrictId!,
@@ -774,7 +774,7 @@ export default function CreateEventScreen() {
               {newCustomerNameError && <Text style={styles.errorText}>{newCustomerNameError}</Text>}
 
               <TextInput
-                label="Mobile Number *"
+                label="Mobile Number"
                 value={newCustomerMobile}
                 onChangeText={(t) => { setNewCustomerMobile(t); setNewCustomerMobileError(undefined); }}
                 mode="outlined"

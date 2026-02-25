@@ -17,8 +17,9 @@ export interface ValidationResult {
  * @returns ValidationResult
  */
 export function validateMobileNumber(mobile: string): ValidationResult {
+  // Mobile number is optional — if empty, it's valid
   if (!mobile || mobile.trim() === '') {
-    return { isValid: false, error: 'Mobile number is required' };
+    return { isValid: true };
   }
 
   // Remove any spaces or dashes

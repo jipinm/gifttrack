@@ -68,7 +68,7 @@ if ($method === 'GET') {
         $paginator = paginate();
     }
     
-    $result = $eventModel->getAll($filters, $paginator);
+    $result = $eventModel->getAll($filters, $paginator, $authUser);
     
     if ($paginator) {
         $events = $paginator->getData();

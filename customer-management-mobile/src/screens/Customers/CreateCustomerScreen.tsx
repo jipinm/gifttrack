@@ -88,12 +88,6 @@ export default function CreateCustomerScreen() {
     return true;
   };
 
-  const validateMobileNumber = (value: string): string | true => {
-    if (!value) return 'Mobile number is required';
-    if (!/^\d{10}$/.test(value)) return 'Mobile number must be exactly 10 digits';
-    return true;
-  };
-
   const validateAddress = (value: string): string | true => {
     if (!value.trim()) return 'Address is required';
     return true;
@@ -182,7 +176,7 @@ export default function CreateCustomerScreen() {
 
         const customerData: CustomerInput = {
           name: data.name.trim(),
-          mobileNumber: data.mobileNumber,
+          mobileNumber: data.mobileNumber?.trim() || undefined,
           address: data.address.trim(),
           stateId: stateId ?? undefined,
           districtId: districtId!,
@@ -346,11 +340,10 @@ export default function CreateCustomerScreen() {
         <Controller
           control={control}
           name="mobileNumber"
-          rules={{ validate: validateMobileNumber }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={styles.inputContainer}>
               <TextInput
-                label="Mobile Number *"
+                label="Mobile Number"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

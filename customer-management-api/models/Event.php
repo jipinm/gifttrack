@@ -21,12 +21,21 @@ class Event {
      * 
      * @param array $filters Optional filters (search, eventTypeId, eventCategory, dateFrom, dateTo)
      * @param Paginator|null $paginator
+     * @param array|null $authUser Authenticated user data for role-based filtering
      * @return array|Paginator
      */
-    public function getAll($filters = [], $paginator = null) {
+    public function getAll($filters = [], $paginator = null, $authUser = null) {
         try {
             $whereClause = "WHERE e.deleted_at IS NULL";
             $params = [];
+            
+            // Role-based visibility:
+            // - Superadmin: sees all events
+            // - Admin: sees only events they created + events created by superadmins
+            if ($authUser && isset($authUser['role']) && $authUser['role'] !== 'superadmin') {
+                $whereClause .= " AND (e.created_by = :authUserId OR e.created_by IN (SELECT u2.id FROM users u2 WHERE u2.role = 'superadmin'))";
+                $params['authUserId'] = $authUser['id'];
+            }
             
             // Search filter (event name)
             if (isset($filters['search']) && !empty(trim($filters['search']))) {

@@ -17,7 +17,7 @@ type NavigationProp = NativeStackNavigationProp<ProfileStackParamList, 'Profile'
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { user, logout, isSuperAdmin } = useAuth();
+  const { user, logout, isSuperAdmin, isAdmin } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Animation values
@@ -195,6 +195,39 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </Animated.View>
+
+        {/* Manage Care-of Options - Visible to Admins (non-superadmin) */}
+        {isAdmin() && !isSuperAdmin() && (
+          <Animated.View
+            style={[
+              styles.cardContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>My Settings</Text>
+              <Divider style={styles.divider} />
+
+              <TouchableOpacity onPress={() => navigation.navigate('MasterDataCategories')}>
+                <List.Item
+                  title="Manage Care-of Options"
+                  description="Create and manage your own Care-of options"
+                  left={(props) => (
+                    <List.Icon {...props} icon="account-group" color={colors.info} />
+                  )}
+                  right={(props) => (
+                    <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />
+                  )}
+                  titleStyle={styles.listTitle}
+                  descriptionStyle={styles.listDescription}
+                />
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        )}
 
         {/* Super Admin Settings - Only visible to Super Admins */}
         {isSuperAdmin() && (

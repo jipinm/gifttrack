@@ -5,7 +5,7 @@
  */
 import React, { useCallback, useRef, useEffect } from 'react';
 import { View, FlatList, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { Text, List, Button } from 'react-native-paper';
+import { Text, List } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,7 +23,8 @@ interface CategoryItem {
   icon: string;
 }
 
-const MASTER_DATA_CATEGORIES: CategoryItem[] = [
+// Superadmin-only categories
+const SUPERADMIN_CATEGORIES: CategoryItem[] = [
   {
     key: 'eventTypes',
     title: 'Event Types',
@@ -42,10 +43,14 @@ const MASTER_DATA_CATEGORIES: CategoryItem[] = [
     description: 'Invited, Not Invited, Confirmed, etc.',
     icon: 'email-check',
   },
+];
+
+// Categories accessible to all users (admin + superadmin)
+const USER_CATEGORIES: CategoryItem[] = [
   {
     key: 'careOfOptions',
     title: 'Care-of Options',
-    description: 'Self, Family Member, etc.',
+    description: 'Manage your own Care-of options',
     icon: 'account-group',
   },
 ];
@@ -54,6 +59,11 @@ export default function MasterDataCategoriesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { isSuperAdmin } = useAuth();
   const hasSuperAdminAccess = isSuperAdmin();
+
+  // Build categories list based on role
+  const categories = hasSuperAdminAccess
+    ? [...SUPERADMIN_CATEGORIES, ...USER_CATEGORIES]
+    : USER_CATEGORIES;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -127,20 +137,6 @@ export default function MasterDataCategoriesScreen() {
 
   const keyExtractor = useCallback((item: CategoryItem) => item.key, []);
 
-  // Access check
-  if (!hasSuperAdminAccess) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.errorIcon}>🔒</Text>
-        <Text style={styles.errorTitle}>Access Denied</Text>
-        <Text style={styles.errorText}>Only Super Admins can manage master data.</Text>
-        <Button mode="outlined" onPress={() => navigation.goBack()}>
-          Go Back
-        </Button>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -168,7 +164,7 @@ export default function MasterDataCategoriesScreen() {
 
       {/* Categories List */}
       <FlatList
-        data={MASTER_DATA_CATEGORIES}
+        data={categories}
         renderItem={renderCategoryItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}

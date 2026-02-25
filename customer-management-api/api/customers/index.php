@@ -139,11 +139,15 @@ if ($method === 'GET') {
         // Validate required fields
         $validator = new Validator();
         $validator->required('name', $input['name'] ?? null, 'Name')
-                  ->required('mobileNumber', $input['mobileNumber'] ?? null, 'Mobile number')
-                  ->mobileNumber('mobileNumber', $input['mobileNumber'] ?? null)
                   ->required('address', $input['address'] ?? null, 'Address')
                   ->required('districtId', $input['districtId'] ?? null, 'District')
                   ->required('cityId', $input['cityId'] ?? null, 'City');
+        
+        // Validate mobile number format only if provided (not required)
+        $mobileInput = $input['mobileNumber'] ?? null;
+        if (!empty($mobileInput) && !preg_match('/^[0-9]{10}$/', $mobileInput)) {
+            $validator->addError('mobileNumber', 'Mobile number must be 10 digits');
+        }
         
         if ($validator->fails()) {
             Response::validationError($validator->getErrors());
@@ -152,7 +156,7 @@ if ($method === 'GET') {
         // Prepare customer data
         $customerData = [
             'name' => Validator::sanitize($input['name']),
-            'mobileNumber' => Validator::sanitize($input['mobileNumber']),
+            'mobileNumber' => isset($input['mobileNumber']) && !empty($input['mobileNumber']) ? Validator::sanitize($input['mobileNumber']) : null,
             'address' => Validator::sanitize($input['address']),
             'stateId' => $input['stateId'] ?? 1, // Default to Kerala
             'districtId' => (int)$input['districtId'],

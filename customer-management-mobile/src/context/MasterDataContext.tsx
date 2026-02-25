@@ -29,10 +29,12 @@ export function MasterDataProvider({ children }: MasterDataProviderProps) {
       hasLoadedRef.current = true;
       loadFromCache();
     }
-    // Reset when logged out
+    // Reset when logged out — clear cache so next user gets fresh data
     if (!isAuthenticated) {
       hasLoadedRef.current = false;
       setMasterData(null);
+      // Clear cached master data (care-of options are user-specific)
+      AsyncStorage.removeItem(STORAGE_KEYS.MASTER_DATA_CACHE).catch(() => {});
     }
   }, [isAuthenticated]);
 

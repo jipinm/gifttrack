@@ -21,10 +21,9 @@ describe('validateMobileNumber', () => {
     expect(validateMobileNumber('6543210987').isValid).toBe(true);
   });
 
-  it('should return invalid for empty input', () => {
+  it('should return valid for empty input (mobile is optional)', () => {
     const result = validateMobileNumber('');
-    expect(result.isValid).toBe(false);
-    expect(result.error).toBe('Mobile number is required');
+    expect(result.isValid).toBe(true);
   });
 
   it('should return invalid for less than 10 digits', () => {

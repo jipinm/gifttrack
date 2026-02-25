@@ -1,33 +1,40 @@
 ﻿<?php
 /**
- * Master Data - Care Of Options
- * GET    /api/master/care-of-options.php             - List all care-of options (active only by default)
- * GET    /api/master/care-of-options.php?all=1       - List all care-of options including inactive (Super Admin)
- * POST   /api/master/care-of-options.php             - Create care-of option (Super Admin)
- * PUT    /api/master/care-of-options.php?id={id}     - Update care-of option (Super Admin)
- * PATCH  /api/master/care-of-options.php?id={id}     - Toggle active status (Super Admin)
- * DELETE /api/master/care-of-options.php?id={id}     - Delete care-of option (Super Admin)
+ * Master Data - Care Of Options (User-Specific)
+ * 
+ * Care-of options are fully user-specific. Each user manages their own options.
+ * Only options created by the logged-in user are visible and manageable.
+ * 
+ * GET    /api/master/care-of-options.php             - List user's own care-of options (active only)
+ * GET    /api/master/care-of-options.php?all=1       - List all user's own care-of options including inactive (for management)
+ * POST   /api/master/care-of-options.php             - Create care-of option (saved as user-specific)
+ * PUT    /api/master/care-of-options.php?id={id}     - Update own care-of option
+ * PATCH  /api/master/care-of-options.php?id={id}     - Toggle active / set default (own options only)
+ * DELETE /api/master/care-of-options.php?id={id}     - Delete own care-of option
  */
 require_once __DIR__ . '/../../bootstrap.php';
 require_once __DIR__ . '/../../middleware/auth.php';
-require_once __DIR__ . '/../../middleware/role.php';
 require_once __DIR__ . '/../../utils/Cache.php';
+
+global $authUser;
 
 $method = strtoupper($_SERVER['REQUEST_METHOD']);
 $db = Database::getInstance()->getConnection();
+$userId = $authUser['id'];
 
 if ($method === 'GET') {
     try {
         $includeAll = isset($_GET['all']) && $_GET['all'] == '1';
         
         if ($includeAll) {
-            global $authUser;
-            if (!$authUser || $authUser['role'] !== 'superadmin') {
-                Response::error('Access denied', 403);
-                exit;
-            }
-            
-            $stmt = $db->query("SELECT id, name, is_active, is_default FROM care_of_options ORDER BY id ASC");
+            // Management view: show only user's own options (including inactive)
+            $stmt = $db->prepare(
+                "SELECT id, name, is_active, is_default 
+                 FROM care_of_options 
+                 WHERE created_by = :userId
+                 ORDER BY id ASC"
+            );
+            $stmt->execute(['userId' => $userId]);
             $careOfOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $careOfOptions = array_map(function($item) {
@@ -41,20 +48,21 @@ if ($method === 'GET') {
             exit;
         }
         
-        $cacheKey = 'master_data:care_of_options_active';
+        // Dropdown view: active options created by this user only
+        $stmt = $db->prepare(
+            "SELECT id, name, is_default 
+             FROM care_of_options 
+             WHERE is_active = 1 AND created_by = :userId
+             ORDER BY id ASC"
+        );
+        $stmt->execute(['userId' => $userId]);
+        $careOfOptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        $careOfOptions = cache_remember($cacheKey, function() use ($db) {
-            $stmt = $db->query("SELECT id, name, is_default FROM care_of_options WHERE is_active = 1 ORDER BY id ASC");
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            return array_map(function($item) {
-                $item['isDefault'] = (bool)$item['is_default'];
-                unset($item['is_default']);
-                return $item;
-            }, $rows);
-        }, 86400);
-        
-        header('Cache-Control: public, max-age=86400');
-        header('Expires: ' . gmdate('D, d M Y H:i:s', time() + 86400) . ' GMT');
+        $careOfOptions = array_map(function($item) {
+            $item['isDefault'] = (bool)$item['is_default'];
+            unset($item['is_default']);
+            return $item;
+        }, $careOfOptions);
         
         Response::success($careOfOptions);
         
@@ -64,8 +72,7 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'POST') {
-    requireSuperAdmin();
-    
+    // Create user's own care-of option
     try {
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -75,20 +82,25 @@ if ($method === 'GET') {
         
         $name = Validator::sanitize($input['name']);
         
-        // Check duplicate
-        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE LOWER(name) = LOWER(?)");
-        $stmt->execute([$name]);
+        // Check duplicate within user's own options only
+        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE LOWER(name) = LOWER(?) AND created_by = ?");
+        $stmt->execute([$name, $userId]);
         if ($stmt->fetch()) {
             Response::error('Care-of option already exists', 409);
         }
         
-        $stmt = $db->prepare("INSERT INTO care_of_options (name, is_active) VALUES (?, 1)");
-        $stmt->execute([$name]);
+        $stmt = $db->prepare("INSERT INTO care_of_options (name, is_active, created_by) VALUES (?, 1, ?)");
+        $stmt->execute([$name, $userId]);
         $id = $db->lastInsertId();
         
         cache_forget('master_data:care_of_options_active');
         
-        Response::success(['id' => (int)$id, 'name' => $name, 'isActive' => true, 'isDefault' => false], 'Care-of option created successfully', 201);
+        Response::success([
+            'id' => (int)$id, 
+            'name' => $name, 
+            'isActive' => true, 
+            'isDefault' => false
+        ], 'Care-of option created successfully', 201);
         
     } catch (Exception $e) {
         error_log("Error creating care-of option: " . $e->getMessage());
@@ -96,8 +108,6 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'PUT') {
-    requireSuperAdmin();
-    
     try {
         $id = $_GET['id'] ?? null;
         if (!$id) {
@@ -112,22 +122,23 @@ if ($method === 'GET') {
         
         $name = Validator::sanitize($input['name']);
         
-        // Check exists
-        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE id = ?");
-        $stmt->execute([(int)$id]);
-        if (!$stmt->fetch()) {
-            Response::error('Care-of option not found', 404);
+        // Check exists and ownership — must be user's own option
+        $stmt = $db->prepare("SELECT id, name, created_by FROM care_of_options WHERE id = ? AND created_by = ?");
+        $stmt->execute([(int)$id, $userId]);
+        $option = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$option) {
+            Response::error('Care-of option not found or access denied', 404);
         }
         
-        // Check duplicate (excluding current)
-        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE LOWER(name) = LOWER(?) AND id != ?");
-        $stmt->execute([$name, (int)$id]);
+        // Check duplicate within user's options (excluding current)
+        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE LOWER(name) = LOWER(?) AND id != ? AND created_by = ?");
+        $stmt->execute([$name, (int)$id, $userId]);
         if ($stmt->fetch()) {
             Response::error('Care-of option name already exists', 409);
         }
         
-        $stmt = $db->prepare("UPDATE care_of_options SET name = ? WHERE id = ?");
-        $stmt->execute([$name, (int)$id]);
+        $stmt = $db->prepare("UPDATE care_of_options SET name = ? WHERE id = ? AND created_by = ?");
+        $stmt->execute([$name, (int)$id, $userId]);
         
         cache_forget('master_data:care_of_options_active');
         
@@ -139,19 +150,18 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'DELETE') {
-    requireSuperAdmin();
-    
     try {
         $id = $_GET['id'] ?? null;
         if (!$id) {
             Response::error('ID is required', 400);
         }
         
-        // Check exists
-        $stmt = $db->prepare("SELECT id FROM care_of_options WHERE id = ?");
-        $stmt->execute([(int)$id]);
-        if (!$stmt->fetch()) {
-            Response::error('Care-of option not found', 404);
+        // Check exists and ownership — must be user's own option
+        $stmt = $db->prepare("SELECT id, name, created_by FROM care_of_options WHERE id = ? AND created_by = ?");
+        $stmt->execute([(int)$id, $userId]);
+        $option = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$option) {
+            Response::error('Care-of option not found or access denied', 404);
         }
         
         // Check if in use
@@ -165,8 +175,8 @@ if ($method === 'GET') {
             );
         }
         
-        $stmt = $db->prepare("DELETE FROM care_of_options WHERE id = ?");
-        $stmt->execute([(int)$id]);
+        $stmt = $db->prepare("DELETE FROM care_of_options WHERE id = ? AND created_by = ?");
+        $stmt->execute([(int)$id, $userId]);
         
         cache_forget('master_data:care_of_options_active');
         
@@ -178,8 +188,6 @@ if ($method === 'GET') {
     }
 
 } elseif ($method === 'PATCH') {
-    requireSuperAdmin();
-    
     try {
         $id = $_GET['id'] ?? null;
         if (!$id) {
@@ -188,22 +196,26 @@ if ($method === 'GET') {
         
         $action = $_GET['action'] ?? null;
         
+        // Check exists and ownership — must be user's own option
+        $stmt = $db->prepare("SELECT id, name, is_active, is_default, created_by FROM care_of_options WHERE id = ? AND created_by = ?");
+        $stmt->execute([(int)$id, $userId]);
+        $careOfOption = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$careOfOption) {
+            Response::error('Care-of option not found or access denied', 404);
+        }
+        
         if ($action === 'set-default') {
-            $stmt = $db->prepare("SELECT id, name, is_active, is_default FROM care_of_options WHERE id = ?");
-            $stmt->execute([(int)$id]);
-            $careOfOption = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$careOfOption) {
-                Response::error('Care-of option not found', 404);
-            }
-            
             if (!$careOfOption['is_active']) {
                 Response::error('Cannot set a disabled item as default', 400);
             }
             
-            $db->exec("UPDATE care_of_options SET is_default = 0");
-            $stmt = $db->prepare("UPDATE care_of_options SET is_default = 1 WHERE id = ?");
-            $stmt->execute([(int)$id]);
+            // Reset default only within user's own options
+            $stmt2 = $db->prepare("UPDATE care_of_options SET is_default = 0 WHERE created_by = ?");
+            $stmt2->execute([$userId]);
+            
+            $stmt = $db->prepare("UPDATE care_of_options SET is_default = 1 WHERE id = ? AND created_by = ?");
+            $stmt->execute([(int)$id, $userId]);
             
             cache_forget('master_data:care_of_options_active');
             
@@ -214,22 +226,14 @@ if ($method === 'GET') {
                 'isDefault' => true
             ], 'Default care-of option set successfully');
         } else {
-            $stmt = $db->prepare("SELECT id, name, is_active, is_default FROM care_of_options WHERE id = ?");
-            $stmt->execute([(int)$id]);
-            $careOfOption = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$careOfOption) {
-                Response::error('Care-of option not found', 404);
-            }
-            
             $newStatus = $careOfOption['is_active'] ? 0 : 1;
             $newDefault = $careOfOption['is_default'];
             if (!$newStatus && $careOfOption['is_default']) {
                 $newDefault = 0;
             }
             
-            $stmt = $db->prepare("UPDATE care_of_options SET is_active = ?, is_default = ? WHERE id = ?");
-            $stmt->execute([$newStatus, $newDefault, (int)$id]);
+            $stmt = $db->prepare("UPDATE care_of_options SET is_active = ?, is_default = ? WHERE id = ? AND created_by = ?");
+            $stmt->execute([$newStatus, $newDefault, (int)$id, $userId]);
             
             cache_forget('master_data:care_of_options_active');
             

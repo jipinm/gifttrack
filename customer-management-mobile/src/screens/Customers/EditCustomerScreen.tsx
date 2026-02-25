@@ -83,7 +83,7 @@ export default function EditCustomerScreen() {
           // Set form values
           reset({
             name: customer.name,
-            mobileNumber: customer.mobileNumber,
+            mobileNumber: customer.mobileNumber || '',
             address: customer.address,
             notes: customer.notes || '',
           });
@@ -109,12 +109,6 @@ export default function EditCustomerScreen() {
   const validateName = (value: string): string | true => {
     if (!value.trim()) return 'Name is required';
     if (value.trim().length < 2) return 'Name must be at least 2 characters';
-    return true;
-  };
-
-  const validateMobileNumber = (value: string): string | true => {
-    if (!value) return 'Mobile number is required';
-    if (!/^\d{10}$/.test(value)) return 'Mobile number must be exactly 10 digits';
     return true;
   };
 
@@ -161,7 +155,7 @@ export default function EditCustomerScreen() {
 
         const customerData: Partial<CustomerInput> = {
           name: data.name.trim(),
-          mobileNumber: data.mobileNumber,
+          mobileNumber: data.mobileNumber?.trim() || null,
           address: data.address.trim(),
           stateId: stateId ?? undefined,
           districtId: districtId!,
@@ -255,11 +249,10 @@ export default function EditCustomerScreen() {
         <Controller
           control={control}
           name="mobileNumber"
-          rules={{ validate: validateMobileNumber }}
           render={({ field: { onChange, onBlur, value } }) => (
             <View style={styles.inputContainer}>
               <TextInput
-                label="Mobile Number *"
+                label="Mobile Number"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

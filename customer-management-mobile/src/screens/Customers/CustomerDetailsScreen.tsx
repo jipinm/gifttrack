@@ -148,7 +148,7 @@ export default function CustomerDetailsScreen() {
 
   // Call customer
   const handleCall = useCallback(() => {
-    if (customer) {
+    if (customer?.mobileNumber) {
       Linking.openURL(`tel:${customer.mobileNumber}`);
     }
   }, [customer]);
@@ -180,7 +180,9 @@ export default function CustomerDetailsScreen() {
     navigation.setOptions({
       headerRight: () => (
         <HeaderButtonGroup>
-          <HeaderIconButton icon="phone" onPress={handleCall} />
+          {customer?.mobileNumber ? (
+            <HeaderIconButton icon="phone" onPress={handleCall} />
+          ) : null}
           <HeaderIconButton icon="pencil" onPress={handleEdit} />
           <HeaderIconButton
             icon="delete"
@@ -190,7 +192,7 @@ export default function CustomerDetailsScreen() {
         </HeaderButtonGroup>
       ),
     });
-  }, [navigation, handleCall, handleEdit]);
+  }, [navigation, handleCall, handleEdit, customer]);
 
   // Loading state
   if (isLoading) {
@@ -236,7 +238,7 @@ export default function CustomerDetailsScreen() {
           {/* Contact Info */}
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>📱 Mobile</Text>
-            <Text style={styles.infoValue}>{customer.mobileNumber}</Text>
+            <Text style={styles.infoValue}>{customer.mobileNumber || 'Not provided'}</Text>
           </View>
 
           <View style={styles.infoRow}>

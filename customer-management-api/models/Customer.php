@@ -242,7 +242,7 @@ class Customer {
             $success = $stmt->execute([
                 'id' => $id,
                 'name' => $data['name'],
-                'mobile_number' => $data['mobileNumber'],
+                'mobile_number' => $data['mobileNumber'] ?? null,
                 'address' => $data['address'],
                 'state_id' => $data['stateId'] ?? 1, // Default to Kerala
                 'district_id' => $data['districtId'],
@@ -284,7 +284,7 @@ class Customer {
                 $params['name'] = $data['name'];
             }
             
-            if (isset($data['mobileNumber'])) {
+            if (array_key_exists('mobileNumber', $data)) {
                 $updateFields[] = "mobile_number = :mobile_number";
                 $params['mobile_number'] = $data['mobileNumber'];
             }
@@ -323,8 +323,10 @@ class Customer {
             $stmt = $this->connection->prepare($sql);
             $stmt->execute($params);
             
-            // Return true only if a row was actually updated (ownership check passed)
-            return $stmt->rowCount() > 0;
+            // Return true if execute succeeded — rowCount() can be 0 when data is
+            // unchanged (MariaDB only counts actually modified rows), which is still
+            // a valid successful update.
+            return true;
         } catch (PDOException $e) {
             error_log("Error updating customer: " . $e->getMessage());
             return false;

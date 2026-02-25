@@ -1,121 +1,61 @@
-# Additional Scope Requirement — Customers List Advanced Filtering
+# Scope Change – Updated Requirements
 
-## Objective
-Enhance the **Customers List** screen with advanced filtering options while keeping all existing filters intact.
-
-This feature must work for both:
-- **Super Admin**
-- **Admin**
-
-With strict role-based data visibility.
+Please review the following scope changes carefully and update the implementation accordingly.
 
 ---
 
-## Role-Based Data Scope
+## 1. Events – Access & Visibility Change
 
-- **Super Admin**
-  - Can view **all customers**
-- **Admin**
-  - Can view **only customers added by themselves**
+### Current Behavior
+- All events are listed for **Superadmin** and **Admins**, regardless of who created them.
 
-These rules apply before any filtering is performed.
+### Required Change
+Update the event listing logic based on user roles:
 
----
+- **Superadmin:**
+  - Can view **all events** (no restriction).
 
-## New Filtering Capabilities
-
-In addition to existing filters, introduce the following **Event-based filters**:
-
----
-
-## 1. Event-wise Filter
-
-- Display an **Event list as a dropdown (DDL)**
-- When an Event is selected:
-  - Show only customers **attached to that selected Event**
-  - Other filters must work in combination with this Event filter
+- **Admin:**
+  - Can view only:
+    - Events created by the **Superadmin**, and  
+    - Events created by **themselves**.
+  - Must **not** see events created by other admins.
 
 ---
 
-## 2. Care-Of Filter  
-*(Visible only when an Event is selected)*
+## 2. Master Data – “Care Of” (Ownership & Customization Change)
 
-- Filter customers by **Care Of** value related to the selected Event
-- Values must come from existing master data (no hardcoding)
+### Current Behavior
+- “Care Of” master data can be created, updated, and deleted only by the **Superadmin**.
+- The same “Care Of” options are shown to all admins in selection fields.
 
----
+### Required Change
+“Care Of” data must become **user-specific (custom per admin/superadmin)**.
 
-## 3. Invitation Status Filter  
-*(Visible only when an Event is selected)*
+- Each **Superadmin** and **Admin** should be able to:
+  - Create, edit, and delete their own **custom “Care Of” options**.
+  - Manage their own “Care Of” data independently.
 
-- Filter customers by **Invitation Status** related to the selected Event
-- Values must come from existing master data (no hardcoding)
+- During selection:
+  - The **Care Of dropdown/list must display only the options created by the logged-in user**.
+  - Users must not see “Care Of” options created by other admins or the superadmin.
 
----
-
-## 4. Gift Filter  
-*(Visible only when an Event is selected)*
-
-Filter customers based on Gift status:
-- **Gifted** → customers who have at least one Gift entry for the selected Event  
-- **Not Gifted** → customers who have no Gift entry for the selected Event
+- UI Requirement:
+  - Add a **“Manage Care Of”** option for **Admins** (not only Superadmin), so they can maintain their own Care Of master data.
 
 ---
 
-## UI / UX Rules
+## Goal of This Change
 
-- Existing filters must continue to work as-is
-- Event-based filters:
-  - Must appear only after selecting an Event
-  - Must be combinable with existing filters
-- Filters must be:
-  - Fast
-  - Clear
-  - Resettable
+These updates are required to:
+- Enforce **data ownership and isolation** between admins.
+- Prevent unintended sharing of events and master data.
+- Allow each admin to work with **their own customized Care Of values**.
+- Maintain full visibility only for the **Superadmin**.
 
 ---
 
-## Functional Rules
-
-Filtering logic must follow this order:
-1. Apply role-based visibility (Super Admin vs Admin)
-2. Apply Event filter (if selected)
-3. Apply Care Of filter (if selected)
-4. Apply Invitation Status filter (if selected)
-5. Apply Gift filter (if selected)
-6. Apply existing filters (name, mobile, etc.)
-
----
-
-## Development Instructions
-
-- Reuse:
-  - Existing customer list UI
-  - Existing filtering logic
-  - Existing Event–Customer relation data
-  - Existing master data for Care Of and Invitation Status
-
-- Implement:
-  - Event dropdown filter
-  - Conditional display of Care Of, Invitation Status, and Gift filters
-  - Combined filtering logic
-
-- Do not:
-  - Hardcode filter values
-  - Break existing filters
-  - Change role-based visibility rules
-
----
-
-## Success Criteria
-
-- Super Admin:
-  - Can filter across all customers
-- Admin:
-  - Can filter only their own customers
-- Event filter:
-  - Shows only customers attached to selected Event
-- Care Of, Invitation Status, and Gift filters:
-  - Appear only after Event selection
-  - Work correctly in combination
-- Existing filters continue to work without regression
+## Notes
+- Existing data should not be deleted without approval.
+- Any required database or API changes should be documented.
+- Role-based access rules must be strictly followed.
