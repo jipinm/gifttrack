@@ -22,8 +22,9 @@ import type { RouteProp } from '@react-navigation/native';
 import { eventService } from '../../services/eventService';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import type { Event, EventCustomer } from '../../types';
+import type { Event, EventCustomer, InvitationStatus, CareOfOption } from '../../types';
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
+import { InvitationStatusDropdown, CareOfDropdown } from '../../components/Dropdowns';
 
 type NavigationProp = NativeStackNavigationProp<EventStackParamList, 'EventDetails'>;
 type RoutePropType = RouteProp<EventStackParamList, 'EventDetails'>;
@@ -44,6 +45,12 @@ export default function EventDetailsScreen() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [detachTarget, setDetachTarget] = useState<EventCustomer | null>(null);
+
+  // Edit attachment state
+  const [editTarget, setEditTarget] = useState<EventCustomer | null>(null);
+  const [editInvitationStatusId, setEditInvitationStatusId] = useState<number | null>(null);
+  const [editCareOfId, setEditCareOfId] = useState<number | null>(null);
+  const [isUpdatingAttachment, setIsUpdatingAttachment] = useState(false);
 
   // Customer search filter (Self Events only)
   const [customerFilter, setCustomerFilter] = useState('');
@@ -208,6 +215,59 @@ export default function EventDetailsScreen() {
       Alert.alert('Error', err instanceof Error ? err.message : 'Failed to detach customer');
     }
   }, [detachTarget, loadData]);
+
+  // Open edit dialog for an attachment
+  const handleEditAttachment = useCallback((attachment: EventCustomer) => {
+    setEditTarget(attachment);
+    setEditInvitationStatusId(attachment.invitationStatus?.id ?? null);
+    // Care Of starts blank — user picks a new one if they want to change.
+    // We never pre-load the existing care_of_id because care_of_options are
+    // user-specific: the stored ID may not exist in the current user's option list.
+    setEditCareOfId(null);
+  }, []);
+
+  // Close edit dialog
+  const handleCloseEditDialog = useCallback(() => {
+    setEditTarget(null);
+    setEditInvitationStatusId(null);
+    setEditCareOfId(null);
+  }, []);
+
+  // Save attachment updates
+  const handleSaveAttachment = useCallback(async () => {
+    if (!editTarget) return;
+
+    try {
+      setIsUpdatingAttachment(true);
+      const updateData: { invitationStatusId?: number; careOfId?: number } = {};
+
+      if (editInvitationStatusId !== null && editInvitationStatusId !== editTarget.invitationStatus?.id) {
+        updateData.invitationStatusId = editInvitationStatusId;
+      }
+      // Only send careOfId when the user explicitly picked a new option
+      if (editCareOfId !== null) {
+        updateData.careOfId = editCareOfId;
+      }
+
+      // Nothing changed
+      if (Object.keys(updateData).length === 0) {
+        handleCloseEditDialog();
+        return;
+      }
+
+      const response = await eventService.updateAttachment(editTarget.id, updateData);
+      if (response.success) {
+        handleCloseEditDialog();
+        loadData();
+      } else {
+        Alert.alert('Error', response.message || 'Failed to update attachment');
+      }
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update attachment');
+    } finally {
+      setIsUpdatingAttachment(false);
+    }
+  }, [editTarget, editInvitationStatusId, editCareOfId, handleCloseEditDialog, loadData]);
 
   // Navigate to attach customer
   const handleAttachCustomer = useCallback(() => {
@@ -446,6 +506,13 @@ export default function EventDetailsScreen() {
 
                   <View style={styles.customerActions}>
                     <IconButton
+                      icon="pencil"
+                      size={18}
+                      iconColor={colors.primary}
+                      onPress={() => handleEditAttachment(attachment)}
+                      style={styles.actionButton}
+                    />
+                    <IconButton
                       icon="delete"
                       size={18}
                       iconColor={colors.error}
@@ -505,6 +572,63 @@ export default function EventDetailsScreen() {
               disabled={isDeleting}
             >
               Delete
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Edit Attachment Dialog */}
+        <Dialog visible={!!editTarget} onDismiss={handleCloseEditDialog}>
+          <Dialog.Title>Edit Customer Details</Dialog.Title>
+          <Dialog.Content>
+            {editTarget && (
+              <View>
+                <Text style={styles.editDialogCustomerName}>
+                  {editTarget.customer?.name || 'Unknown'}
+                </Text>
+                <View style={styles.editDialogField}>
+                  <InvitationStatusDropdown
+                    value={editInvitationStatusId}
+                    onSelect={(status: InvitationStatus | null) =>
+                      setEditInvitationStatusId(status?.id ?? null)
+                    }
+                    label="Invitation Status"
+                    autoSelectDefault={false}
+                    disabled={isUpdatingAttachment}
+                  />
+                </View>
+                {event?.eventCategory === 'self_event' && (
+                  <View style={styles.editDialogField}>
+                    {editTarget?.careOf?.name ? (
+                      <View style={styles.currentValueRow}>
+                        <Text style={styles.currentValueLabel}>Current Care Of:</Text>
+                        <Text style={styles.currentValueText}>{editTarget.careOf.name}</Text>
+                      </View>
+                    ) : null}
+                    <CareOfDropdown
+                      value={editCareOfId}
+                      onSelect={(careOf: CareOfOption | null) =>
+                        setEditCareOfId(careOf?.id ?? null)
+                      }
+                      label={editTarget?.careOf?.name ? 'Change Care Of' : 'Care Of'}
+                      placeholder={editTarget?.careOf?.name ? 'Select to change...' : 'Select Care Of'}
+                      autoSelectDefault={false}
+                      disabled={isUpdatingAttachment}
+                    />
+                  </View>
+                )}
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleCloseEditDialog} disabled={isUpdatingAttachment}>
+              Cancel
+            </Button>
+            <Button
+              onPress={handleSaveAttachment}
+              loading={isUpdatingAttachment}
+              disabled={isUpdatingAttachment}
+            >
+              Save
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -735,6 +859,34 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontStyle: 'italic',
+  },
+  editDialogCustomerName: {
+    fontSize: typography.fontSize.base,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  editDialogField: {
+    marginBottom: spacing.sm,
+  },
+  currentValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  currentValueLabel: {
+    fontSize: typography.fontSize.xs,
+    color: colors.textSecondary,
+    marginRight: spacing.xs,
+  },
+  currentValueText: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   metaInfo: {
     alignItems: 'center',
