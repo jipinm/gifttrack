@@ -1,7 +1,7 @@
 /**
  * Global Styles
  * Common styles used across the application
- * App: Gifts Track
+ * App: Guestly
  */
 
 import { StyleSheet } from 'react-native';

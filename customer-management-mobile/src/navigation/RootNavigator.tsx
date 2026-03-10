@@ -1,7 +1,7 @@
 /**
  * Root Navigator
  * Manages authentication state and routes to appropriate navigator
- * App: Gifts Track
+ * App: Guestly
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, Animated, Dimensions } from 'react-native';
@@ -109,7 +109,7 @@ export default function RootNavigator() {
         </Animated.View>
 
         <Animated.View style={{ opacity: textOpacity }}>
-          <Text style={styles.splashTitle}>Gifts Track</Text>
+          <Text style={styles.splashTitle}>Guestly</Text>
           <Text style={styles.splashTagline}>Track gifts with ease</Text>
         </Animated.View>
 

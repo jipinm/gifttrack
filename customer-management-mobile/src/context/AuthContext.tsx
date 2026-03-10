@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../services/authService';
+import { authEvents } from '../utils/authEvents';
 import type { User, LoginCredentials, AuthContextType } from '../types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +17,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check authentication status on mount
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Auto-logout when the API interceptor receives a 401 (invalid/expired token)
+  useEffect(() => {
+    authEvents.setOnUnauthorized(() => {
+      setToken(null);
+      setUser(null);
+    });
+    return () => {
+      authEvents.clearOnUnauthorized();
+    };
   }, []);
 
   const checkAuth = async () => {

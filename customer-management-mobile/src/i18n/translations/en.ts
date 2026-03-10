@@ -60,7 +60,7 @@ export const en = {
   onboarding: {
     skip: 'Skip',
     getStarted: 'Get Started',
-    welcome: 'Welcome to Gifts Track',
+    welcome: 'Welcome to Guestly',
     welcomeDesc: 'Your complete solution for managing customers and tracking gifts with ease.',
     customerManagement: 'Customer Management',
     customerManagementDesc: 'Add, edit, and organize customer information. Search and filter to find anyone instantly.',

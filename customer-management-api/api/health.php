@@ -74,4 +74,9 @@ $health['checks']['logs_writable'] = (is_dir($logsDir) && is_writable($logsDir))
 
 // Return health status
 http_response_code($health['status'] === 'ok' ? 200 : 503);
+
+// Include server Unix timestamp so clients can detect clock drift
+$health['server_time_utc'] = gmdate('Y-m-d\TH:i:s\Z');
+$health['server_timestamp'] = time();
+
 echo json_encode(['success' => true, 'data' => $health, 'message' => 'Health check complete']);

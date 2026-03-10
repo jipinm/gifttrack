@@ -1,7 +1,7 @@
 /**
  * Profile Screen
  * Displays user profile info with logout functionality
- * App: Gifts Track
+ * App: Guestly
  */
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Alert, Animated, TouchableOpacity } from 'react-native';
@@ -324,7 +324,7 @@ export default function ProfileScreen() {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Gifts Track{'\n'}© 2026 All Rights Reserved
+          Guestly{'\n'}© 2026 All Rights Reserved
         </Text>
       </ScrollView>
     </View>

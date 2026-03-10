@@ -1,7 +1,7 @@
 /**
  * Onboarding Screen
  * App introduction and feature highlights for first-time users
- * App: Gifts Track
+ * App: Guestly
  */
 
 import React, { useState, useRef, useCallback } from 'react';
@@ -31,7 +31,7 @@ interface OnboardingSlide {
 const slides: OnboardingSlide[] = [
   {
     id: '1',
-    title: 'Welcome to Gifts Track',
+    title: 'Welcome to Guestly',
     description:
       'Your complete solution for managing customers and tracking gifts with ease.',
     icon: '🎁',

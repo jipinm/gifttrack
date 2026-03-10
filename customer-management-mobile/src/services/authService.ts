@@ -5,11 +5,41 @@ import { STORAGE_KEYS } from '../config/env';
 import { clearAllSensitiveData } from '../utils/storage';
 import type { LoginCredentials, AuthResponse, ApiResponse, UserRole } from '../types';
 
+/**
+ * Check server/device clock drift using the health endpoint.
+ * Logs a warning if the clocks differ by more than 60 seconds —
+ * clock skew is the most common cause of tokens appearing expired immediately.
+ */
+async function checkClockDrift(): Promise<void> {
+  try {
+    const deviceNow = Math.floor(Date.now() / 1000);
+    const response = await api.get<{ server_timestamp?: number }>('/api/health');
+    const serverTimestamp = response.data?.server_timestamp;
+    if (serverTimestamp) {
+      const drift = Math.abs(deviceNow - serverTimestamp);
+      if (drift > 60) {
+        console.warn(
+          `[ClockDrift] Server and device clocks differ by ${drift}s. ` +
+          'Ensure the production server has NTP synchronisation enabled ' +
+          '(e.g. sudo timedatectl set-ntp true  OR  sudo systemctl enable --now systemd-timesyncd).'
+        );
+      } else {
+        console.log(`[ClockDrift] OK – server/device offset: ${drift}s`);
+      }
+    }
+  } catch {
+    // Non-critical – do not block authentication
+  }
+}
+
 export const authService = {
   /**
    * Login user (Admin or Super Admin)
    */
   login: async (credentials: LoginCredentials): Promise<ApiResponse<AuthResponse>> => {
+    // Check clock drift before login – skewed clocks cause immediate token expiry
+    checkClockDrift();
+
     const response = await api.post<AuthResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
 
     if (response.success && response.data) {

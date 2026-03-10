@@ -1,8 +1,80 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { API_CONFIG } from '../config/api';
+import { API_CONFIG, API_ENDPOINTS } from '../config/api';
 import { STORAGE_KEYS } from '../config/env';
+import { authEvents } from '../utils/authEvents';
 import type { ApiResponse } from '../types';
+
+// ---------------------------------------------------------------------------
+// Token-expiry helpers
+// ---------------------------------------------------------------------------
+
+/** Decode the JWT payload (base64url) without verifying the signature. */
+function decodeJwtPayload(token: string): { exp?: number; iat?: number } | null {
+  try {
+    const base64 = token.split('.')[1];
+    if (!base64) return null;
+    // atob is available in React Native's JSC / Hermes environments
+    const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Return true when the token will expire within the next 5 minutes
+ * so we can proactively refresh before the server rejects it.
+ */
+function isTokenExpiringSoon(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) return false;
+  const fiveMinutes = 5 * 60;
+  return payload.exp - Date.now() / 1000 < fiveMinutes;
+}
+
+// Prevent concurrent refresh calls: one refresh, then replay queued requests
+let _isRefreshing = false;
+let _refreshSubscribers: Array<(newToken: string | null) => void> = [];
+
+function subscribeToRefresh(cb: (token: string | null) => void) {
+  _refreshSubscribers.push(cb);
+}
+
+function notifyRefreshSubscribers(newToken: string | null) {
+  _refreshSubscribers.forEach((cb) => cb(newToken));
+  _refreshSubscribers = [];
+}
+
+/** Call the /api/auth/refresh endpoint directly (bypasses apiClient to avoid loops). */
+async function callRefreshEndpoint(): Promise<string | null> {
+  try {
+    const currentToken = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+    if (!currentToken) return null;
+
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH}`,
+      {},
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${currentToken}`,
+        },
+        timeout: API_CONFIG.TIMEOUT,
+      }
+    );
+
+    const newToken: string | undefined = response.data?.data?.token;
+    if (newToken) {
+      await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, newToken);
+      return newToken;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -14,12 +86,17 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor - attach auth token
+// Request interceptor - attach auth token + proactive refresh when expiring soon
 apiClient.interceptors.request.use(
-  async (config) => {
+  async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
+      let token = await SecureStore.getItemAsync(STORAGE_KEYS.AUTH_TOKEN);
       if (token) {
+        // Proactively refresh if token expires within 5 minutes
+        if (isTokenExpiringSoon(token)) {
+          const refreshed = await callRefreshEndpoint();
+          if (refreshed) token = refreshed;
+        }
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
@@ -32,19 +109,50 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle common errors
+// Response interceptor - reactive silent refresh on 401, then replay the request
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
   async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
     if (error.response) {
-      // Handle 401 Unauthorized - clear token and redirect to login
-      if (error.response.status === 401) {
+      // Handle 401 Unauthorized
+      if (error.response.status === 401 && !originalRequest._retry) {
+        // If already refreshing, queue this request until refresh completes
+        if (_isRefreshing) {
+          return new Promise((resolve, reject) => {
+            subscribeToRefresh((newToken) => {
+              if (newToken) {
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
+                resolve(apiClient(originalRequest));
+              } else {
+                reject(error);
+              }
+            });
+          });
+        }
+
+        originalRequest._retry = true;
+        _isRefreshing = true;
+
+        const newToken = await callRefreshEndpoint();
+        _isRefreshing = false;
+
+        if (newToken) {
+          // Replay queued requests with the new token
+          notifyRefreshSubscribers(newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return apiClient(originalRequest);
+        }
+
+        // Refresh failed - clear stored credentials and force logout
+        notifyRefreshSubscribers(null);
         await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN);
         await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_DATA);
         await SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ROLE);
-        // Navigation will be handled in the app
+        authEvents.emitUnauthorized();
       }
 
       // Handle 403 Forbidden

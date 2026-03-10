@@ -1,7 +1,7 @@
 /**
  * Login Screen
  * Handles user authentication with mobile number and password
- * App: Gifts Track
+ * App: Guestly
  */
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -176,7 +176,7 @@ export default function LoginScreen() {
           >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>Gifts Track</Text>
+              <Text style={styles.title}>Guestly</Text>
               <Text style={styles.subtitle}>Sign in to your account</Text>
             </View>
 

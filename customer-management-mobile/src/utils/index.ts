@@ -18,6 +18,8 @@ export {
 
 export type { ValidationResult } from './validation';
 
+export { authEvents } from './authEvents';
+
 // Formatting utilities
 export {
   formatCurrency,

@@ -1,7 +1,7 @@
 /**
  * Theme Configuration
  * Defines colors, typography, spacing, and other design tokens
- * App: Gifts Track
+ * App: Guestly
  */
 
 // Color Palette - Modern gradient-friendly colors

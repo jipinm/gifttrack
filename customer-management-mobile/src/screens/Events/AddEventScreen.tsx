@@ -24,6 +24,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { eventService } from '../../services/eventService';
 import { customerService } from '../../services/customerService';
 import { giftService } from '../../services/giftService';
+import { useMasterData } from '../../context/MasterDataContext';
 import {
   EventTypeDropdown,
   InvitationStatusDropdown,
@@ -115,6 +116,19 @@ export default function CreateEventScreen() {
   const [customerGiftTotalValue, setCustomerGiftTotalValue] = useState(0);
 
   const isCustomerEvent = eventCategory === 'customer_event';
+  const { masterData } = useMasterData();
+
+  // Pre-select Kerala state whenever the new customer form opens or master data loads
+  useEffect(() => {
+    if (showNewCustomerForm && newCustomerStateId === null && masterData?.states) {
+      const kerala = masterData.states.find(
+        (s) => s.name.toLowerCase() === 'kerala'
+      );
+      if (kerala) {
+        setNewCustomerStateId(kerala.id);
+      }
+    }
+  }, [showNewCustomerForm, masterData, newCustomerStateId]);
 
   // Reset customer/gift state when category changes
   useEffect(() => {
@@ -250,7 +264,14 @@ export default function CreateEventScreen() {
     setCustomerSearch('');
     setSearchResults([]);
     setHasSearched(false);
-  }, []);
+    // Pre-select Kerala as the default state
+    const kerala = masterData?.states?.find(
+      (s) => s.name.toLowerCase() === 'kerala'
+    );
+    if (kerala) {
+      setNewCustomerStateId(kerala.id);
+    }
+  }, [masterData]);
 
   const handleCancelNewCustomer = useCallback(() => {
     setShowNewCustomerForm(false);

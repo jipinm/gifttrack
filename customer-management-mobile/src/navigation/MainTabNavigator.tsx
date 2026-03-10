@@ -1,7 +1,7 @@
 /**
  * Main Tab Navigator
  * Bottom tab navigation for main app sections
- * App: Gifts Track
+ * App: Guestly
  * 
  * Admin tabs: Events, Customers, Add Customer, Profile
  * SuperAdmin tabs: Events, Customers, Admins, Profile

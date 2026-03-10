@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: 'Gifts Track',
+    name: 'Guestly',
     slug: 'customer-management-mobile',
     scheme: 'gifttrack',
     version: '1.0.0',

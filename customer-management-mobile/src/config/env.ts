@@ -9,7 +9,7 @@ const isDevelopment = __DEV__;
 // App Configuration
 export const APP_CONFIG = {
   // App Name
-  NAME: 'Gifts Track',
+  NAME: 'Guestly',
 
   // App Version
   VERSION: '1.0.0',
