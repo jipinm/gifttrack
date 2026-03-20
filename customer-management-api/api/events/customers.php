@@ -47,12 +47,17 @@ if ($method === 'GET') {
     $formattedAttachments = array_map(function($att) use ($ecModel, $eventCategory) {
         return $ecModel->formatForResponse($att, $eventCategory);
     }, $attachments);
+
+    // Aggregated attendee stats by invitation status
+    $adminIdForStats = ($authUser['role'] === 'superadmin') ? null : $authUser['id'];
+    $attendeeStats = $ecModel->getAttendeeStatsByEvent($eventId, $adminIdForStats);
     
     Response::success([
         'eventId' => $eventId,
         'eventCategory' => $eventCategory,
         'customers' => $formattedAttachments,
-        'count' => count($formattedAttachments)
+        'count' => count($formattedAttachments),
+        'attendeeStats' => $attendeeStats
     ]);
 
 } elseif ($method === 'POST') {
@@ -124,11 +129,19 @@ if ($method === 'GET') {
     // Validate invitation status
     $invitationStatusId = $data['invitationStatusId'] ?? 1; // Default: Called
     
+    // Auto-fetch attendee_count from the customer record (not from request)
+    $db = Database::getInstance()->getConnection();
+    $cStmt = $db->prepare("SELECT attendee_count FROM customers WHERE id = :id LIMIT 1");
+    $cStmt->execute(['id' => $data['customerId']]);
+    $customerRow = $cStmt->fetch(PDO::FETCH_ASSOC);
+    $attendeeCount = ($customerRow && isset($customerRow['attendee_count'])) ? max(1, (int)$customerRow['attendee_count']) : 1;
+    
     $attachmentData = [
         'eventId' => $data['eventId'],
         'customerId' => $data['customerId'],
         'invitationStatusId' => $invitationStatusId,
         'careOfId' => $careOfId,
+        'attendeeCount' => $attendeeCount,
         'attachedBy' => $authUser['id']
     ];
     

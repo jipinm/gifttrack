@@ -14,6 +14,7 @@ import {
   Dialog,
   Portal,
   Searchbar,
+  TextInput,
 } from 'react-native-paper';
 import { HeaderIconButton, HeaderButtonGroup } from '../../components/Common/HeaderButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -22,7 +23,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { eventService } from '../../services/eventService';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, borderRadius, typography } from '../../styles/theme';
-import type { Event, EventCustomer, InvitationStatus, CareOfOption } from '../../types';
+import type { Event, EventCustomer, InvitationStatus, CareOfOption, AttendeeStatItem } from '../../types';
 import type { EventStackParamList } from '../../navigation/EventStackNavigator';
 import { InvitationStatusDropdown, CareOfDropdown } from '../../components/Dropdowns';
 
@@ -50,7 +51,12 @@ export default function EventDetailsScreen() {
   const [editTarget, setEditTarget] = useState<EventCustomer | null>(null);
   const [editInvitationStatusId, setEditInvitationStatusId] = useState<number | null>(null);
   const [editCareOfId, setEditCareOfId] = useState<number | null>(null);
+  const [editAttendeeCount, setEditAttendeeCount] = useState('1');
+  const [editAttendeeCountError, setEditAttendeeCountError] = useState<string | undefined>();
   const [isUpdatingAttachment, setIsUpdatingAttachment] = useState(false);
+
+  // Attendee stats (aggregated by invitation status)
+  const [attendeeStats, setAttendeeStats] = useState<AttendeeStatItem[]>([]);
 
   // Customer search filter (Self Events only)
   const [customerFilter, setCustomerFilter] = useState('');
@@ -78,6 +84,7 @@ export default function EventDetailsScreen() {
         if (item.customer && typeof item.customer === 'object') {
           return {
             ...item,
+            attendeeCount: item.attendeeCount ?? 1,
             giftCount: item.giftCount ?? 0,
             totalGiftValue: item.totalGiftValue ?? 0,
             giftDirection: item.giftDirection ?? 'received',
@@ -88,6 +95,7 @@ export default function EventDetailsScreen() {
           id: item.id ?? item.attachmentId,
           eventId: item.eventId ?? eventId,
           customerId: item.customerId,
+          attendeeCount: item.attendeeCount ?? item.attendee_count ?? 1,
           customer: {
             id: item.customerId,
             name: item.name ?? 'Unknown',
@@ -133,6 +141,10 @@ export default function EventDetailsScreen() {
             setCustomers(normalizeCustomers(data.customers));
           } else if (Array.isArray(data)) {
             setCustomers(normalizeCustomers(data));
+          }
+          // Load attendee stats if present
+          if (data.attendeeStats && Array.isArray(data.attendeeStats)) {
+            setAttendeeStats(data.attendeeStats);
           }
         }
       } catch (custErr) {
@@ -220,6 +232,8 @@ export default function EventDetailsScreen() {
   const handleEditAttachment = useCallback((attachment: EventCustomer) => {
     setEditTarget(attachment);
     setEditInvitationStatusId(attachment.invitationStatus?.id ?? null);
+    setEditAttendeeCount(String(attachment.attendeeCount ?? 1));
+    setEditAttendeeCountError(undefined);
     // Care Of starts blank — user picks a new one if they want to change.
     // We never pre-load the existing care_of_id because care_of_options are
     // user-specific: the stored ID may not exist in the current user's option list.
@@ -231,15 +245,25 @@ export default function EventDetailsScreen() {
     setEditTarget(null);
     setEditInvitationStatusId(null);
     setEditCareOfId(null);
+    setEditAttendeeCount('1');
+    setEditAttendeeCountError(undefined);
   }, []);
 
   // Save attachment updates
   const handleSaveAttachment = useCallback(async () => {
     if (!editTarget) return;
 
+    // Validate attendee count
+    const parsedAttendeeCount = parseInt(editAttendeeCount, 10);
+    if (!editAttendeeCount || isNaN(parsedAttendeeCount) || parsedAttendeeCount < 1) {
+      setEditAttendeeCountError('Attendee count must be at least 1');
+      return;
+    }
+    setEditAttendeeCountError(undefined);
+
     try {
       setIsUpdatingAttachment(true);
-      const updateData: { invitationStatusId?: number; careOfId?: number } = {};
+      const updateData: { invitationStatusId?: number; careOfId?: number; attendeeCount?: number } = {};
 
       if (editInvitationStatusId !== null && editInvitationStatusId !== editTarget.invitationStatus?.id) {
         updateData.invitationStatusId = editInvitationStatusId;
@@ -247,6 +271,10 @@ export default function EventDetailsScreen() {
       // Only send careOfId when the user explicitly picked a new option
       if (editCareOfId !== null) {
         updateData.careOfId = editCareOfId;
+      }
+      // Send attendeeCount if it changed
+      if (parsedAttendeeCount !== (editTarget.attendeeCount ?? 1)) {
+        updateData.attendeeCount = parsedAttendeeCount;
       }
 
       // Nothing changed
@@ -267,7 +295,7 @@ export default function EventDetailsScreen() {
     } finally {
       setIsUpdatingAttachment(false);
     }
-  }, [editTarget, editInvitationStatusId, editCareOfId, handleCloseEditDialog, loadData]);
+  }, [editTarget, editInvitationStatusId, editCareOfId, editAttendeeCount, handleCloseEditDialog, loadData]);
 
   // Navigate to attach customer
   const handleAttachCustomer = useCallback(() => {
@@ -414,6 +442,12 @@ export default function EventDetailsScreen() {
               <Text style={styles.statLabel}>Customers</Text>
             </View>
             <View style={styles.stat}>
+              <Text style={styles.statNumber}>
+                {attendeeStats.reduce((sum, s) => sum + s.attendeeCount, 0) || (event.customerCount ?? 0)}
+              </Text>
+              <Text style={styles.statLabel}>Attendees</Text>
+            </View>
+            <View style={styles.stat}>
               <Text style={styles.statNumber}>{event.giftCount ?? 0}</Text>
               <Text style={styles.statLabel}>Gifts</Text>
             </View>
@@ -424,6 +458,24 @@ export default function EventDetailsScreen() {
               <Text style={styles.statLabel}>Total Value</Text>
             </View>
           </View>
+
+          {/* Attendee Stats by Invitation Status */}
+          {attendeeStats.length > 0 && (
+            <>
+              <Divider style={styles.divider} />
+              <Text style={styles.attendeeStatsTitle}>👥 Attendee Summary</Text>
+              {attendeeStats.map((stat) => (
+                <View key={stat.invitationStatusId} style={styles.attendeeStatRow}>
+                  <Text style={styles.attendeeStatStatus}>{stat.invitationStatusName}</Text>
+                  <View style={styles.attendeeStatCounts}>
+                    <Text style={styles.attendeeStatCount}>{stat.customerCount} customers</Text>
+                    <Text style={styles.attendeeStatSeparator}> · </Text>
+                    <Text style={styles.attendeeStatAttendees}>{stat.attendeeCount} attendees</Text>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
         </View>
 
         {/* Attached Customers Section */}
@@ -472,6 +524,11 @@ export default function EventDetailsScreen() {
                     <Text style={styles.attachmentDetail}>
                       📨 {attachment.invitationStatus?.name || 'N/A'}
                     </Text>
+                    {(attachment.attendeeCount ?? 1) > 1 && (
+                      <Text style={styles.attachmentDetail}>
+                        👥 {attachment.attendeeCount} attendees
+                      </Text>
+                    )}
                     {attachment.careOf && (
                       <Text style={styles.attachmentDetail}>
                         👤 C/O: {attachment.careOf.name}
@@ -616,6 +673,23 @@ export default function EventDetailsScreen() {
                     />
                   </View>
                 )}
+                <View style={styles.editDialogField}>
+                  <TextInput
+                    label="Number of Attendees"
+                    value={editAttendeeCount}
+                    onChangeText={(text) => {
+                      setEditAttendeeCount(text);
+                      setEditAttendeeCountError(undefined);
+                    }}
+                    mode="outlined"
+                    keyboardType="number-pad"
+                    disabled={isUpdatingAttachment}
+                    error={!!editAttendeeCountError}
+                  />
+                  {editAttendeeCountError ? (
+                    <Text style={styles.editAttendeeCountError}>{editAttendeeCountError}</Text>
+                  ) : null}
+                </View>
               </View>
             )}
           </Dialog.Content>
@@ -887,6 +961,47 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.textPrimary,
+  },
+  editAttendeeCountError: {
+    fontSize: typography.fontSize.xs,
+    color: colors.error,
+    marginTop: 2,
+  },
+  attendeeStatsTitle: {
+    fontSize: typography.fontSize.sm,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  attendeeStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  attendeeStatStatus: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textPrimary,
+    fontWeight: '500',
+    flex: 1,
+  },
+  attendeeStatCounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  attendeeStatCount: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+  },
+  attendeeStatSeparator: {
+    fontSize: typography.fontSize.sm,
+    color: colors.textSecondary,
+  },
+  attendeeStatAttendees: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '600',
   },
   metaInfo: {
     alignItems: 'center',

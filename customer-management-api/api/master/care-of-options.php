@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Master Data - Care Of Options (User-Specific)
  * 

@@ -11,6 +11,7 @@ import {
   CustomerDetailsScreen,
   CreateCustomerScreen,
   EditCustomerScreen,
+  ImportCustomersScreen,
 } from '../screens/Customers';
 import { EditGiftScreen } from '../screens/Gifts';
 
@@ -20,6 +21,7 @@ export type CustomerStackParamList = {
   CreateCustomer: undefined;
   EditCustomer: { customerId: string };
   EditGift: { giftId: string; customerId: string };
+  ImportCustomers: undefined;
 };
 
 const Stack = createNativeStackNavigator<CustomerStackParamList>();
@@ -55,6 +57,11 @@ export default function CustomerStackNavigator() {
         options={{ title: 'Edit Customer' }}
       />
       <Stack.Screen name="EditGift" component={EditGiftScreen} options={{ title: 'Edit Gift' }} />
+      <Stack.Screen
+        name="ImportCustomers"
+        component={ImportCustomersScreen}
+        options={{ title: 'Import Customers' }}
+      />
     </Stack.Navigator>
   );
 }

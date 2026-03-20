@@ -51,6 +51,8 @@ if (array_key_exists('careOfId', $data)) {
     $updateData['careOfId'] = $data['careOfId'] ? (int)$data['careOfId'] : null;
 }
 
+// attendeeCount is NOT editable here — it is managed via the Customer record only
+
 if (empty($updateData)) {
     Response::validationError(['message' => 'At least one field is required for update']);
     exit;

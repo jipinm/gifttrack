@@ -50,6 +50,7 @@ export default function EditCustomerScreen() {
   const [stateId, setStateId] = useState<number | null>(null);
   const [districtId, setDistrictId] = useState<number | null>(null);
   const [cityId, setCityId] = useState<number | null>(null);
+  const [attendeeCount, setAttendeeCount] = useState('1');
 
   // Validation errors for dropdowns
   const [districtError, setDistrictError] = useState<string | undefined>();
@@ -92,6 +93,7 @@ export default function EditCustomerScreen() {
           setStateId(customer.state.id);
           setDistrictId(customer.district.id);
           setCityId(customer.city.id);
+          setAttendeeCount(String(customer.attendeeCount ?? 1));
         } else {
           setLoadError(response.message || 'Failed to load customer');
         }
@@ -161,6 +163,7 @@ export default function EditCustomerScreen() {
           districtId: districtId!,
           cityId: cityId!,
           notes: data.notes.trim() || undefined,
+          attendeeCount: parseInt(attendeeCount, 10) > 0 ? parseInt(attendeeCount, 10) : 1,
         };
 
         const response = await customerService.update(customerId, customerData);
@@ -182,6 +185,7 @@ export default function EditCustomerScreen() {
       stateId,
       districtId,
       cityId,
+      attendeeCount,
       customerId,
       navigation,
     ]
@@ -343,6 +347,18 @@ export default function EditCustomerScreen() {
             </View>
           )}
         />
+
+        {/* Total Attendee Count */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            label="Total Attendee Count *"
+            value={attendeeCount}
+            onChangeText={(text) => setAttendeeCount(text.replace(/[^0-9]/g, ''))}
+            mode="outlined"
+            keyboardType="number-pad"
+            disabled={isSubmitting}
+          />
+        </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>

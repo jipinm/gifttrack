@@ -54,6 +54,9 @@ Options -MultiViews
     # GET/POST /api/customers
     RewriteRule ^api/customers/?$ api/customers/index.php [L,QSA]
     
+    # POST /api/customers/import (Excel bulk import)
+    RewriteRule ^api/customers/import/?$ api/customers/import.php [L,QSA]
+    
     # /api/customers/show?id={id} (direct file, query param based)
     RewriteRule ^api/customers/show/?$ api/customers/show.php [L,QSA]
     

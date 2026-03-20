@@ -124,6 +124,10 @@ if ($method === 'GET') {
             $updateData['notes'] = Validator::sanitize($input['notes']);
         }
         
+        if (isset($input['attendeeCount'])) {
+            $updateData['attendeeCount'] = max(1, (int)$input['attendeeCount']);
+        }
+        
         // Update customer
         $success = $customerModel->update($customerId, $updateData, $createdByFilter);
         

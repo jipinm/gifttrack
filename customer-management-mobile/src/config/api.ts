@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
     BASE: '/api/customers',
     SHOW: '/api/customers/show',
     EVENTS: '/api/customers/events',
+    IMPORT: '/api/customers/import',
   },
 
   // Events (Standalone - managed by Super Admin)

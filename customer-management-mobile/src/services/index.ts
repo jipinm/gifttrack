@@ -9,4 +9,5 @@ export { eventService } from './eventService';
 export { giftService } from './giftService';
 export { masterDataService } from './masterDataService';
 export { adminService } from './adminService';
+export { importService } from './importService';
 export { api } from './api';

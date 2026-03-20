@@ -202,14 +202,20 @@ export default function CustomerListScreen() {
       headerRight: () => (
         <View style={styles.headerRight}>
           <HeaderIconButton
-            icon="filter-variant"
-            onPress={() => setFilterModalVisible(true)}
+            icon="file-import-outline"
+            onPress={() => navigation.navigate('ImportCustomers')}
           />
-          {activeFilterCount > 0 && (
-            <Badge style={styles.filterBadge} size={16}>
-              {activeFilterCount}
-            </Badge>
-          )}
+          <View style={styles.filterButtonWrapper}>
+            <HeaderIconButton
+              icon="filter-variant"
+              onPress={() => setFilterModalVisible(true)}
+            />
+            {activeFilterCount > 0 && (
+              <Badge style={styles.filterBadge} size={16}>
+                {activeFilterCount}
+              </Badge>
+            )}
+          </View>
         </View>
       ),
     });
@@ -313,13 +319,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  filterButtonWrapper: {
     position: 'relative',
   },
   filterBadge: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: colors.primary,
+    top: 4,
+    right: 4,
+    backgroundColor: colors.error,
   },
   resultsBar: {
     paddingHorizontal: spacing.md,

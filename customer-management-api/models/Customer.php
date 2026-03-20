@@ -230,11 +230,11 @@ class Customer {
             $sql = "INSERT INTO customers (
                         id, name, mobile_number, address, 
                         state_id, district_id, city_id, 
-                        notes, created_by
+                        notes, attendee_count, created_by
                     ) VALUES (
                         :id, :name, :mobile_number, :address,
                         :state_id, :district_id, :city_id,
-                        :notes, :created_by
+                        :notes, :attendee_count, :created_by
                     )";
             
             $stmt = $this->connection->prepare($sql);
@@ -248,6 +248,7 @@ class Customer {
                 'district_id' => $data['districtId'],
                 'city_id' => $data['cityId'],
                 'notes' => $data['notes'] ?? null,
+                'attendee_count' => isset($data['attendeeCount']) ? max(1, (int)$data['attendeeCount']) : 1,
                 'created_by' => $data['createdBy']
             ]);
             
@@ -312,6 +313,11 @@ class Customer {
             if (isset($data['notes'])) {
                 $updateFields[] = "notes = :notes";
                 $params['notes'] = $data['notes'];
+            }
+            
+            if (isset($data['attendeeCount'])) {
+                $updateFields[] = "attendee_count = :attendee_count";
+                $params['attendee_count'] = max(1, (int)$data['attendeeCount']);
             }
             
             if (empty($updateFields)) {
@@ -446,6 +452,7 @@ class Customer {
                 'name' => $customer['city_name'] ?? ''
             ],
             'notes' => $customer['notes'] ?? '',
+            'attendeeCount' => (int)($customer['attendee_count'] ?? 1),
             'createdBy' => $customer['created_by'] ? [
                 'id' => $customer['created_by'],
                 'name' => $customer['created_by_name'] ?? ''

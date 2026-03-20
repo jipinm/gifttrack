@@ -216,6 +216,7 @@ export default function AttachCustomerScreen() {
     eventId,
     invitationStatusId,
     careOfId,
+
     isSelfEvent,
     giftTypeId,
     giftValue,
@@ -315,6 +316,9 @@ export default function AttachCustomerScreen() {
                 📍 {selectedCustomer.address}
               </Text>
             ) : null}
+            <Text style={styles.attendeeInfo}>
+              👥 Attendees: {selectedCustomer.attendeeCount ?? 1}
+            </Text>
           </View>
 
           {/* Invitation Status */}
@@ -338,6 +342,8 @@ export default function AttachCustomerScreen() {
               disabled={isSubmitting}
             />
           )}
+
+          {/* Attendee Count is managed on the Customer profile, displayed read-only */}
 
           {/* Gift Section (Optional) — shown after invitation status */}
           {invitationStatusId && (
@@ -508,6 +514,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  attendeeInfo: {
+    fontSize: typography.fontSize.sm,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
   buttonContainer: {
     flexDirection: 'row',
     marginTop: spacing.xl,
@@ -536,5 +548,11 @@ const styles = StyleSheet.create({
   giftInput: {
     marginTop: spacing.sm,
     backgroundColor: colors.surface,
+  },
+  errorText: {
+    fontSize: typography.fontSize.xs,
+    color: colors.error,
+    marginTop: 2,
+    marginLeft: spacing.xs,
   },
 });

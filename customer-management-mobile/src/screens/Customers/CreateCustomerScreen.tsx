@@ -49,6 +49,7 @@ export default function CreateCustomerScreen() {
   const [stateId, setStateId] = useState<number | null>(1); // Default: Kerala
   const [districtId, setDistrictId] = useState<number | null>(null);
   const [cityId, setCityId] = useState<number | null>(null);
+  const [attendeeCount, setAttendeeCount] = useState('1');
 
   // Validation errors for dropdowns
   const [districtError, setDistrictError] = useState<string | undefined>();
@@ -182,6 +183,7 @@ export default function CreateCustomerScreen() {
           districtId: districtId!,
           cityId: cityId!,
           notes: data.notes.trim() || undefined,
+          attendeeCount: parseInt(attendeeCount, 10) > 0 ? parseInt(attendeeCount, 10) : 1,
         };
 
         const response = await customerService.create(customerData);
@@ -271,6 +273,7 @@ export default function CreateCustomerScreen() {
           setSelectedEvent(null);
           setInvitationStatusId(null);
           setCareOfId(null);
+          setAttendeeCount('1');
           setGiftTypeId(null);
           setGiftValue('');
           setGiftDescription('');
@@ -298,7 +301,7 @@ export default function CreateCustomerScreen() {
         setIsSubmitting(false);
       }
     },
-    [stateId, districtId, cityId, selectedEvent, invitationStatusId, careOfId, isSelfEvent, giftTypeId, giftValue, giftDescription, navigation, reset]
+    [stateId, districtId, cityId, attendeeCount, selectedEvent, invitationStatusId, careOfId, isSelfEvent, giftTypeId, giftValue, giftDescription, navigation, reset]
   );
 
   return (
@@ -434,6 +437,18 @@ export default function CreateCustomerScreen() {
             </View>
           )}
         />
+
+        {/* Total Attendee Count */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            label="Total Attendee Count *"
+            value={attendeeCount}
+            onChangeText={(text) => setAttendeeCount(text.replace(/[^0-9]/g, ''))}
+            mode="outlined"
+            keyboardType="number-pad"
+            disabled={isSubmitting}
+          />
+        </View>
 
         {/* Link to Event (Optional) */}
         <Text style={styles.sectionTitle}>Link to Event (Optional)</Text>

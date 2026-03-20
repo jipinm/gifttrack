@@ -104,6 +104,7 @@ export interface Customer {
     name: string;
   };
   notes: string;
+  attendeeCount: number;
   eventCount?: number;
   giftCount?: number;
   totalGiftValue?: number;
@@ -123,6 +124,7 @@ export interface CustomerInput {
   districtId: number;
   cityId: number;
   notes?: string;
+  attendeeCount?: number;
 }
 
 export interface CustomerFilters {
@@ -196,6 +198,7 @@ export interface EventCustomer {
   id: string;
   eventId: string;
   customerId: string;
+  attendeeCount: number;
   customer?: {
     id: string;
     name: string;
@@ -230,11 +233,20 @@ export interface AttachCustomerInput {
   customerId: string;
   invitationStatusId?: number;
   careOfId?: number;
+  attendeeCount?: number;
 }
 
 export interface UpdateAttachmentInput {
   invitationStatusId?: number;
   careOfId?: number;
+  attendeeCount?: number;
+}
+
+export interface AttendeeStatItem {
+  invitationStatusId: number;
+  invitationStatusName: string;
+  customerCount: number;
+  attendeeCount: number;
 }
 
 // ============================================================================
@@ -321,6 +333,23 @@ export interface AdminUpdateInput {
   districtId?: number;
   cityId?: number;
   branch?: string;
+}
+
+// ============================================================================
+// Import Types
+// ============================================================================
+
+export interface ImportRowError {
+  row: number;
+  name: string;
+  errors: string[];
+}
+
+export interface ImportResult {
+  total: number;
+  imported: number;
+  failed: number;
+  errors: ImportRowError[];
 }
 
 // ============================================================================

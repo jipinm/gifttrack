@@ -162,6 +162,7 @@ if ($method === 'GET') {
             'districtId' => (int)$input['districtId'],
             'cityId' => (int)$input['cityId'],
             'notes' => isset($input['notes']) ? Validator::sanitize($input['notes']) : null,
+            'attendeeCount' => isset($input['attendeeCount']) ? max(1, (int)$input['attendeeCount']) : 1,
             'createdBy' => $authUser['id']
         ];
         

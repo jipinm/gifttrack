@@ -1,61 +1,67 @@
-# Scope Change – Updated Requirements
+# Scope Update: Total Attendee Handling Correction
 
-Please review the following scope changes carefully and update the implementation accordingly.
-
----
-
-## 1. Events – Access & Visibility Change
-
-### Current Behavior
-- All events are listed for **Superadmin** and **Admins**, regardless of who created them.
-
-### Required Change
-Update the event listing logic based on user roles:
-
-- **Superadmin:**
-  - Can view **all events** (no restriction).
-
-- **Admin:**
-  - Can view only:
-    - Events created by the **Superadmin**, and  
-    - Events created by **themselves**.
-  - Must **not** see events created by other admins.
+## Objective
+Refine the implementation of **Total Attendee Count** to align with the correct business logic.
 
 ---
 
-## 2. Master Data – “Care Of” (Ownership & Customization Change)
+## Correct Definition
 
-### Current Behavior
-- “Care Of” master data can be created, updated, and deleted only by the **Superadmin**.
-- The same “Care Of” options are shown to all admins in selection fields.
-
-### Required Change
-“Care Of” data must become **user-specific (custom per admin/superadmin)**.
-
-- Each **Superadmin** and **Admin** should be able to:
-  - Create, edit, and delete their own **custom “Care Of” options**.
-  - Manage their own “Care Of” data independently.
-
-- During selection:
-  - The **Care Of dropdown/list must display only the options created by the logged-in user**.
-  - Users must not see “Care Of” options created by other admins or the superadmin.
-
-- UI Requirement:
-  - Add a **“Manage Care Of”** option for **Admins** (not only Superadmin), so they can maintain their own Care Of master data.
+- **Total Attendee Count** represents the **total number of persons associated with a customer**.
+- This value is **customer-specific**, not event-specific.
 
 ---
 
-## Goal of This Change
+## Functional Requirements
 
-These updates are required to:
-- Enforce **data ownership and isolation** between admins.
-- Prevent unintended sharing of events and master data.
-- Allow each admin to work with **their own customized Care Of values**.
-- Maintain full visibility only for the **Superadmin**.
+### 1. Customer Add & Edit
+
+- The **Total Attendee Count input** must be available:
+  - On **Add Customer**
+  - On **Edit Customer**
+
+- This field should:
+  - Be a **numeric input**
+  - Have a **default value (e.g., 1)**
+  - Be stored as part of the **customer data**
 
 ---
 
-## Notes
-- Existing data should not be deleted without approval.
-- Any required database or API changes should be documented.
-- Role-based access rules must be strictly followed.
+### 2. Event Association Behavior
+
+- When a customer is **attached to an event**:
+  - The **existing Total Attendee Count** from the customer record must be used
+  - This value contributes to the **event-level attendee aggregation**
+
+---
+
+### 3. Add Customer from Event Page
+
+- On the **“Add Customer” option within the Event page**:
+  - Include the **Total Attendee Count input**
+  - Ensure the value is saved as part of the **customer record**
+
+---
+
+### 4. Consistency Across Application
+
+- Wherever a **Customer Add option** exists in the application:
+  - The **Total Attendee Count field must be included**
+
+---
+
+### 5. Edit Behavior
+
+- The **Total Attendee Count** should only be editable through:
+  - The **Customer Edit form**
+
+- It should **not be edited directly during event association**
+
+---
+
+## Constraints
+
+- Ensure:
+  - Existing functionalities remain **unaffected**
+  - Data consistency is maintained across customer and event modules
+  - No duplication or conflict in attendee calculations

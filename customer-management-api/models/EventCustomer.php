@@ -183,9 +183,9 @@ class EventCustomer {
             $id = $this->generateUUID();
             
             $sql = "INSERT INTO event_customers (
-                        id, event_id, customer_id, invitation_status_id, care_of_id, attached_by
+                        id, event_id, customer_id, invitation_status_id, care_of_id, attendee_count, attached_by
                     ) VALUES (
-                        :id, :eventId, :customerId, :invitationStatusId, :careOfId, :attachedBy
+                        :id, :eventId, :customerId, :invitationStatusId, :careOfId, :attendeeCount, :attachedBy
                     )";
             
             $stmt = $this->connection->prepare($sql);
@@ -195,6 +195,7 @@ class EventCustomer {
                 'customerId' => $data['customerId'],
                 'invitationStatusId' => $data['invitationStatusId'] ?? 1,
                 'careOfId' => $data['careOfId'] ?? null,
+                'attendeeCount' => max(1, (int)($data['attendeeCount'] ?? 1)),
                 'attachedBy' => $data['attachedBy']
             ]);
             
@@ -225,6 +226,11 @@ class EventCustomer {
             if (array_key_exists('careOfId', $data)) {
                 $updates[] = "care_of_id = :careOfId";
                 $params['careOfId'] = $data['careOfId'];
+            }
+            
+            if (isset($data['attendeeCount'])) {
+                $updates[] = "attendee_count = :attendeeCount";
+                $params['attendeeCount'] = max(1, (int)$data['attendeeCount']);
             }
             
             if (empty($updates)) {
@@ -373,6 +379,7 @@ class EventCustomer {
             'id' => $attachment['id'],
             'eventId' => $attachment['event_id'],
             'customerId' => $attachment['customer_id'],
+            'attendeeCount' => (int)($attachment['attendee_count'] ?? 1),
             'invitationStatus' => [
                 'id' => (int)$attachment['invitation_status_id'],
                 'name' => $attachment['invitation_status_name'] ?? null
@@ -427,5 +434,51 @@ class EventCustomer {
         }
         
         return $formatted;
+    }
+
+    /**
+     * Get aggregated attendee stats grouped by invitation status for an event
+     *
+     * @param string $eventId Event UUID
+     * @param string|null $adminId Restrict to customers created by this admin
+     * @return array [ { invitationStatusId, invitationStatusName, customerCount, attendeeCount } ]
+     */
+    public function getAttendeeStatsByEvent($eventId, $adminId = null) {
+        try {
+            $sql = "SELECT 
+                        ist.id as invitation_status_id,
+                        ist.name as invitation_status_name,
+                        COUNT(ec.id) as customer_count,
+                        COALESCE(SUM(ec.attendee_count), 0) as attendee_count
+                    FROM event_customers ec
+                    INNER JOIN customers c ON ec.customer_id = c.id
+                    LEFT JOIN invitation_status ist ON ec.invitation_status_id = ist.id
+                    WHERE ec.event_id = :eventId";
+
+            $params = ['eventId' => $eventId];
+
+            if ($adminId !== null) {
+                $sql .= " AND c.created_by = :adminId";
+                $params['adminId'] = $adminId;
+            }
+
+            $sql .= " GROUP BY ist.id, ist.name ORDER BY ist.id ASC";
+
+            $stmt = $this->connection->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            return array_map(function($row) {
+                return [
+                    'invitationStatusId'   => (int)$row['invitation_status_id'],
+                    'invitationStatusName' => $row['invitation_status_name'],
+                    'customerCount'        => (int)$row['customer_count'],
+                    'attendeeCount'        => (int)$row['attendee_count'],
+                ];
+            }, $rows);
+        } catch (PDOException $e) {
+            error_log("Error getting attendee stats: " . $e->getMessage());
+            return [];
+        }
     }
 }

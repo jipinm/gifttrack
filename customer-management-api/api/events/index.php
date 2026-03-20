@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Events List & Create Endpoint
  * GET /api/events - List all events (all authenticated users)

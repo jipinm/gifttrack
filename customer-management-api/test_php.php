@@ -1,4 +1,9 @@
 <?php
+require 'vendor/autoload.php';
+$r = new \PhpOffice\PhpSpreadsheet\Reader\Xlsx();
+echo "PhpSpreadsheet loaded OK\n";
+exit;
+
 echo json_encode([
     'success' => true,
     'message' => 'PHP is working',

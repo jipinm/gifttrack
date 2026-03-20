@@ -257,6 +257,24 @@ export const api = {
     }
   },
 
+  // POST multipart/form-data (file uploads)
+  postFormData: async <T = any>(
+    url: string,
+    formData: FormData
+  ): Promise<ApiResponse<T>> => {
+    try {
+      const response = await apiClient.post<T>(url, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for large file uploads
+      });
+      return normalizeResponse<T>(response);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
   // PATCH request
   patch: async <T = any>(
     url: string,
