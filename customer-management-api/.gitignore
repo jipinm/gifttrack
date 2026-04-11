@@ -1,9 +1,3 @@
-# Environment variables
-.env
-.env.production
-.env.local
-.env.*.local
-
 # Composer
 vendor/
 composer.lock
