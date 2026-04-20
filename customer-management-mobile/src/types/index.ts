@@ -299,11 +299,14 @@ export interface CustomerEventsResponse {
 // Admin Types (Superadmin only)
 // ============================================================================
 
+export type AdminStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Admin {
   id: string;
   name: string;
   mobileNumber: string;
   role: 'admin';
+  status: AdminStatus;
   address?: string;
   stateId?: number;
   districtId?: number;
@@ -326,6 +329,24 @@ export interface AdminInput {
   branch?: string;
 }
 
+/** Payload for public admin self-registration (no token required) */
+export interface AdminRegistrationInput {
+  name: string;
+  mobileNumber: string;
+  password: string;
+  address: string;
+  stateId?: number | null;
+  districtId?: number | null;
+  cityId?: number | null;
+  branch?: string;
+}
+
+// ============================================================================
+// Registration Request Types (Super Admin approval panel)
+// ============================================================================
+
+export type RegistrationRequestAction = 'approve' | 'reject';
+
 export interface AdminUpdateInput {
   name?: string;
   address?: string;
@@ -333,6 +354,27 @@ export interface AdminUpdateInput {
   districtId?: number;
   cityId?: number;
   branch?: string;
+}
+
+// ============================================================================
+// Admin Deletion Request Types
+// ============================================================================
+
+export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
+export type DeletionRequestAction = 'approve' | 'reject';
+
+// Re-use AdminStatus for registration request status filtering
+export type RegistrationRequestStatus = AdminStatus;
+
+export interface AdminDeletionRequest {
+  id: number;
+  adminId: string;
+  adminName: string;
+  adminMobile: string;
+  adminBranch?: string;
+  status: DeletionRequestStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================================================

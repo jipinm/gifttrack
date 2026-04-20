@@ -21,6 +21,8 @@ interface DistrictDropdownProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Optional override: if provided, these districts are used instead of MasterDataContext */
+  districts?: District[];
 }
 
 export default function DistrictDropdown({
@@ -32,15 +34,17 @@ export default function DistrictDropdown({
   error,
   disabled = false,
   required = false,
+  districts: districtsProp,
 }: DistrictDropdownProps) {
-  const { masterData, isLoading, getDistrictsByState } = useMasterData();
+  const { masterData, isLoading: contextLoading, getDistrictsByState } = useMasterData();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get filtered districts based on state
+  // Use prop-supplied districts if provided (e.g. pre-auth screens), otherwise fall back to context
+  const isLoading = districtsProp ? false : contextLoading;
   const districts = useMemo(
-    () => (stateId ? getDistrictsByState(stateId) : []),
-    [stateId, getDistrictsByState]
+    () => districtsProp ?? (stateId ? getDistrictsByState(stateId) : []),
+    [districtsProp, stateId, getDistrictsByState]
   );
 
   const selectedDistrict = useMemo(

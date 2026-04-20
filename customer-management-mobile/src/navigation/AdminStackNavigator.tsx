@@ -5,12 +5,14 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography } from '../styles/theme';
-import { AdminListScreen, CreateAdminScreen, EditAdminScreen } from '../screens/Admins';
+import { AdminListScreen, CreateAdminScreen, EditAdminScreen, DeletionRequestsScreen, RegistrationRequestsScreen } from '../screens/Admins';
 
 export type AdminStackParamList = {
   AdminList: undefined;
   CreateAdmin: undefined;
   EditAdmin: { adminId: string };
+  DeletionRequests: undefined;
+  RegistrationRequests: undefined;
 };
 
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -39,6 +41,16 @@ export default function AdminStackNavigator() {
         name="EditAdmin"
         component={EditAdminScreen}
         options={{ title: 'Edit Admin' }}
+      />
+      <Stack.Screen
+        name="DeletionRequests"
+        component={DeletionRequestsScreen}
+        options={{ title: 'Deletion Requests' }}
+      />
+      <Stack.Screen
+        name="RegistrationRequests"
+        component={RegistrationRequestsScreen}
+        options={{ title: 'Registration Requests' }}
       />
     </Stack.Navigator>
   );

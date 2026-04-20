@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { adminService } from '../../services/adminService';
 import { useAuth } from '../../context/AuthContext';
 import { AdminCard } from '../../components/Admins';
-import { colors, spacing } from '../../styles/theme';
+import { colors, spacing, borderRadius, typography } from '../../styles/theme';
 import type { Admin } from '../../types';
 import type { AdminStackParamList } from '../../navigation/AdminStackNavigator';
 
@@ -59,6 +59,16 @@ export default function AdminListScreen() {
   // Navigate to create admin
   const handleCreateAdmin = useCallback(() => {
     navigation.navigate('CreateAdmin');
+  }, [navigation]);
+
+  // Navigate to deletion requests
+  const handleDeletionRequests = useCallback(() => {
+    navigation.navigate('DeletionRequests');
+  }, [navigation]);
+
+  // Navigate to registration requests
+  const handleRegistrationRequests = useCallback(() => {
+    navigation.navigate('RegistrationRequests');
   }, [navigation]);
 
   // Set header button
@@ -197,6 +207,32 @@ export default function AdminListScreen() {
         />
       </View>
 
+      {/* Registration Requests Banner */}
+      <Button
+        mode="outlined"
+        icon="account-plus"
+        onPress={handleRegistrationRequests}
+        style={styles.deletionRequestsBanner}
+        contentStyle={styles.deletionRequestsBannerContent}
+        labelStyle={styles.deletionRequestsBannerLabel}
+        textColor={colors.primary}
+      >
+        View Registration Requests
+      </Button>
+
+      {/* Deletion Requests Banner */}
+      <Button
+        mode="outlined"
+        icon="account-remove"
+        onPress={handleDeletionRequests}
+        style={styles.deletionRequestsBanner}
+        contentStyle={styles.deletionRequestsBannerContent}
+        labelStyle={styles.deletionRequestsBannerLabel}
+        textColor={colors.error}
+      >
+        View Account Deletion Requests
+      </Button>
+
       {/* Admin List */}
       <FlatList
         data={filteredAdmins}
@@ -297,6 +333,19 @@ const styles = StyleSheet.create({
   searchbar: {
     backgroundColor: colors.background,
     elevation: 0,
+  },
+  deletionRequestsBanner: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    borderColor: colors.error,
+    borderRadius: borderRadius.lg,
+  },
+  deletionRequestsBannerContent: {
+    paddingVertical: 4,
+  },
+  deletionRequestsBannerLabel: {
+    fontSize: typography.fontSize.sm,
   },
   listContent: {
     padding: spacing.md,

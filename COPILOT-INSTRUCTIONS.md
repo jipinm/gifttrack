@@ -1,67 +1,135 @@
-# Scope Update: Total Attendee Handling Correction
+# Admin Open Registration with Super Admin Approval
 
-## Objective
-Refine the implementation of **Total Attendee Count** to align with the correct business logic.
+## Overview
+
+This document defines the implementation of an **open registration system for Admin users**, where new admins can create an account but require **Super Admin approval** before gaining access.
 
 ---
 
-## Correct Definition
+## Objective
 
-- **Total Attendee Count** represents the **total number of persons associated with a customer**.
-- This value is **customer-specific**, not event-specific.
+- Allow users to register as Admins via a public registration form  
+- Ensure all registrations are **reviewed and approved by Super Admin**  
+- Prevent login access until approval is granted  
+
+---
+
+## Feature Workflow
+
+1. User submits Admin registration form  
+2. System creates admin account with **pending status**  
+3. Super Admin reviews the request  
+4. Super Admin:
+   - Approves → Admin can log in  
+   - Rejects → Admin cannot access the system  
 
 ---
 
 ## Functional Requirements
 
-### 1. Customer Add & Edit
+### 1. Admin Registration Page
 
-- The **Total Attendee Count input** must be available:
-  - On **Add Customer**
-  - On **Edit Customer**
+- Add a **“Create Admin Account”** option on the login page  
+- Redirect to a **registration form**
 
-- This field should:
-  - Be a **numeric input**
-  - Have a **default value (e.g., 1)**
-  - Be stored as part of the **customer data**
-
----
-
-### 2. Event Association Behavior
-
-- When a customer is **attached to an event**:
-  - The **existing Total Attendee Count** from the customer record must be used
-  - This value contributes to the **event-level attendee aggregation**
+#### Required Fields (example)
+- Name  
+- Email  
+- Mobile number  
+- Password  
+- Confirm password  
 
 ---
 
-### 3. Add Customer from Event Page
+### 2. Registration Submission
 
-- On the **“Add Customer” option within the Event page**:
-  - Include the **Total Attendee Count input**
-  - Ensure the value is saved as part of the **customer record**
-
----
-
-### 4. Consistency Across Application
-
-- Wherever a **Customer Add option** exists in the application:
-  - The **Total Attendee Count field must be included**
+- On submit:
+  - Validate all inputs  
+  - Create a new admin account with:
+    ```
+    status = pending
+    ```
+  - Do NOT allow login at this stage  
 
 ---
 
-### 5. Edit Behavior
+### 3. User Communication
 
-- The **Total Attendee Count** should only be editable through:
-  - The **Customer Edit form**
+Display a confirmation message after registration:
 
-- It should **not be edited directly during event association**
+> "Your registration request has been submitted and is pending approval by the Super Admin. You will be able to log in once approved."
 
 ---
 
-## Constraints
+### 4. Login Restriction
 
-- Ensure:
-  - Existing functionalities remain **unaffected**
-  - Data consistency is maintained across customer and event modules
-  - No duplication or conflict in attendee calculations
+- Prevent login for:
+  - `pending` admins  
+  - `rejected` admins  
+
+- Allow login only when:
+status = approved
+
+
+---
+
+### 5. Super Admin Approval Panel
+
+Provide functionality for Super Admin to:
+
+- View all registration requests  
+- Filter by status (pending / approved / rejected)  
+- Take actions:
+- Approve  
+- Reject  
+
+#### Actions
+
+- **On Approval:**
+- Update status to `approved`  
+- Admin can log in  
+
+- **On Rejection:**
+- Update status to `rejected`  
+- Admin access remains blocked  
+
+---
+
+## Codebase Analysis Requirements
+
+- Analyze existing admin management:
+- Authentication flow  
+- Admin creation logic  
+- Role and permission system  
+
+- Identify:
+- Where to integrate registration  
+- Where to enforce approval checks in login flow  
+
+---
+
+## Notifications (Optional)
+
+- Notify user when:
+- Registration submitted  
+- Account approved  
+- Account rejected  
+
+---
+
+## Scope Limitation
+
+- Do not modify existing admin roles/permissions unnecessarily  
+- Only extend current admin system to support registration + approval  
+- Maintain existing login and security flow  
+
+---
+
+## Expected Outcome
+
+- Public admin registration available  
+- Secure approval-based access control  
+- Only approved admins can log in  
+- Clean and scalable admin onboarding process  
+
+---

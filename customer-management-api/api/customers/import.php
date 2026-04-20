@@ -123,7 +123,7 @@ $aliases = [
     'gifttype'          => ['gifttype', 'gift', 'giftname'],
     'giftamount'        => ['giftamount', 'amount', 'value', 'giftvalue'],
     'giftdescription'   => ['giftdescription', 'giftdesc', 'description'],
-    'attendees'         => ['numberofattendees', 'attendees', 'attendeecount', 'numattendees', 'noofAttendees'],
+    'attendees'         => ['numberofattendees', 'attendees', 'attendeecount', 'numattendees', 'noofattendees'],
 ];
 
 $resolvedCols = [];
@@ -322,6 +322,7 @@ foreach ($dataRows as $rowIndex => $row) {
     }
 
     // ── Insert customer ──
+    $resolvedAttendeeCount = ($attendeesRaw !== '' && ctype_digit((string)$attendeesRaw)) ? max(1, (int)$attendeesRaw) : 1;
     $customerId = $customerModel->create([
         'name'          => $name,
         'mobileNumber'  => $mobile ?: null,
@@ -330,7 +331,7 @@ foreach ($dataRows as $rowIndex => $row) {
         'districtId'    => $districtId,
         'cityId'        => $cityId,
         'notes'         => $notes ?: null,
-        'attendeeCount' => ($attendeesRaw !== '' && ctype_digit((string)$attendeesRaw)) ? max(1, (int)$attendeesRaw) : 1,
+        'attendeeCount' => $resolvedAttendeeCount,
         'createdBy'     => $authUser['id'],
     ]);
 
@@ -373,8 +374,7 @@ foreach ($dataRows as $rowIndex => $row) {
 
             if (!$ecCheck->fetch()) {
                 $ecId = generateUUID();
-                // attendee_count comes from the customer record, not the spreadsheet column
-                $attendeeCount = ($attendeesRaw !== '' && ctype_digit((string)$attendeesRaw)) ? max(1, (int)$attendeesRaw) : 1;
+                // attendee_count is a snapshot of the customer's count at attachment time
                 $ecStmt = $db->prepare(
                     "INSERT INTO event_customers (id, event_id, customer_id, invitation_status_id, care_of_id, attendee_count, attached_by)
                      VALUES (:id, :eventId, :customerId, :invStatusId, :careOfId, :attendeeCount, :attachedBy)"
@@ -385,7 +385,7 @@ foreach ($dataRows as $rowIndex => $row) {
                     'customerId'    => $customerId,
                     'invStatusId'   => $invStatusId,
                     'careOfId'      => $careOfId,
-                    'attendeeCount' => $attendeeCount,
+                    'attendeeCount' => $resolvedAttendeeCount,
                     'attachedBy'    => $authUser['id'],
                 ]);
             }

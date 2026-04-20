@@ -14,7 +14,6 @@ import {
   Dialog,
   Portal,
   Searchbar,
-  TextInput,
 } from 'react-native-paper';
 import { HeaderIconButton, HeaderButtonGroup } from '../../components/Common/HeaderButton';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
@@ -51,8 +50,6 @@ export default function EventDetailsScreen() {
   const [editTarget, setEditTarget] = useState<EventCustomer | null>(null);
   const [editInvitationStatusId, setEditInvitationStatusId] = useState<number | null>(null);
   const [editCareOfId, setEditCareOfId] = useState<number | null>(null);
-  const [editAttendeeCount, setEditAttendeeCount] = useState('1');
-  const [editAttendeeCountError, setEditAttendeeCountError] = useState<string | undefined>();
   const [isUpdatingAttachment, setIsUpdatingAttachment] = useState(false);
 
   // Attendee stats (aggregated by invitation status)
@@ -232,8 +229,6 @@ export default function EventDetailsScreen() {
   const handleEditAttachment = useCallback((attachment: EventCustomer) => {
     setEditTarget(attachment);
     setEditInvitationStatusId(attachment.invitationStatus?.id ?? null);
-    setEditAttendeeCount(String(attachment.attendeeCount ?? 1));
-    setEditAttendeeCountError(undefined);
     // Care Of starts blank — user picks a new one if they want to change.
     // We never pre-load the existing care_of_id because care_of_options are
     // user-specific: the stored ID may not exist in the current user's option list.
@@ -245,25 +240,15 @@ export default function EventDetailsScreen() {
     setEditTarget(null);
     setEditInvitationStatusId(null);
     setEditCareOfId(null);
-    setEditAttendeeCount('1');
-    setEditAttendeeCountError(undefined);
   }, []);
 
   // Save attachment updates
   const handleSaveAttachment = useCallback(async () => {
     if (!editTarget) return;
 
-    // Validate attendee count
-    const parsedAttendeeCount = parseInt(editAttendeeCount, 10);
-    if (!editAttendeeCount || isNaN(parsedAttendeeCount) || parsedAttendeeCount < 1) {
-      setEditAttendeeCountError('Attendee count must be at least 1');
-      return;
-    }
-    setEditAttendeeCountError(undefined);
-
     try {
       setIsUpdatingAttachment(true);
-      const updateData: { invitationStatusId?: number; careOfId?: number; attendeeCount?: number } = {};
+      const updateData: { invitationStatusId?: number; careOfId?: number } = {};
 
       if (editInvitationStatusId !== null && editInvitationStatusId !== editTarget.invitationStatus?.id) {
         updateData.invitationStatusId = editInvitationStatusId;
@@ -271,10 +256,6 @@ export default function EventDetailsScreen() {
       // Only send careOfId when the user explicitly picked a new option
       if (editCareOfId !== null) {
         updateData.careOfId = editCareOfId;
-      }
-      // Send attendeeCount if it changed
-      if (parsedAttendeeCount !== (editTarget.attendeeCount ?? 1)) {
-        updateData.attendeeCount = parsedAttendeeCount;
       }
 
       // Nothing changed
@@ -295,7 +276,7 @@ export default function EventDetailsScreen() {
     } finally {
       setIsUpdatingAttachment(false);
     }
-  }, [editTarget, editInvitationStatusId, editCareOfId, editAttendeeCount, handleCloseEditDialog, loadData]);
+  }, [editTarget, editInvitationStatusId, editCareOfId, handleCloseEditDialog, loadData]);
 
   // Navigate to attach customer
   const handleAttachCustomer = useCallback(() => {
@@ -673,23 +654,6 @@ export default function EventDetailsScreen() {
                     />
                   </View>
                 )}
-                <View style={styles.editDialogField}>
-                  <TextInput
-                    label="Number of Attendees"
-                    value={editAttendeeCount}
-                    onChangeText={(text) => {
-                      setEditAttendeeCount(text);
-                      setEditAttendeeCountError(undefined);
-                    }}
-                    mode="outlined"
-                    keyboardType="number-pad"
-                    disabled={isUpdatingAttachment}
-                    error={!!editAttendeeCountError}
-                  />
-                  {editAttendeeCountError ? (
-                    <Text style={styles.editAttendeeCountError}>{editAttendeeCountError}</Text>
-                  ) : null}
-                </View>
               </View>
             )}
           </Dialog.Content>
@@ -961,11 +925,6 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     fontWeight: '600',
     color: colors.textPrimary,
-  },
-  editAttendeeCountError: {
-    fontSize: typography.fontSize.xs,
-    color: colors.error,
-    marginTop: 2,
   },
   attendeeStatsTitle: {
     fontSize: typography.fontSize.sm,

@@ -56,6 +56,9 @@ class JWT {
     public static function validate($token) {
         try {
             $config = self::loadConfig();
+
+            // Allow up to 3 minutes of clock drift between server and clients
+            FirebaseJWT::$leeway = 180;
             
             $decoded = FirebaseJWT::decode(
                 $token,

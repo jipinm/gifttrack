@@ -14,6 +14,24 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+-- Dumping structure for table customer_management_db.admin_deletion_requests
+CREATE TABLE IF NOT EXISTS `admin_deletion_requests` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `admin_id` varchar(36) NOT NULL COMMENT 'FK to users table (admin only)',
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending' COMMENT 'Request status',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT 'Request submitted time',
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Last updated time',
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_id` (`admin_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_created_at` (`created_at`),
+  CONSTRAINT `admin_deletion_requests_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table customer_management_db.admin_deletion_requests: ~1 rows (approximately)
+INSERT INTO `admin_deletion_requests` (`id`, `admin_id`, `status`, `created_at`, `updated_at`) VALUES
+	(1, '23176fe7-0a50-11f1-b752-7008945b491c', 'pending', '2026-04-19 23:29:09', '2026-04-19 23:29:09');
+
 -- Dumping structure for table customer_management_db.care_of_options
 CREATE TABLE IF NOT EXISTS `care_of_options` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -176,41 +194,48 @@ CREATE TABLE IF NOT EXISTS `customers` (
   CONSTRAINT `customers_ibfk_4` FOREIGN KEY (`city_id`) REFERENCES `cities` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.customers: ~33 rows (approximately)
-INSERT INTO `customers` (`id`, `name`, `mobile_number`, `address`, `district_id`, `city_id`, `state_id`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
-	('151e61ab-239c-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-19 14:01:10'),
-	('151f6c84-239c-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-19 14:01:10'),
-	('15208756-239c-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-19 14:01:10'),
-	('2fd8ccbf-0ab1-11f1-830b-7008945b491c', 'Jinu abraham', '5582225824', 'Jinu villa', 13, 82, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:15', '2026-02-15 20:59:15'),
-	('3e944b96-0bf2-11f1-8d62-7008945b491c', 'Raj Kumar', '6652225421', 'Raj bhavan', 13, 82, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25'),
-	('4a36d642-0ab1-11f1-830b-7008945b491c', 'Sheelu shan', '5584447542', 'Sheelu shan villa', 6, 35, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:59', '2026-02-15 20:59:59'),
-	('76cda247-239a-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
-	('76ce2dab-239a-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
-	('76cefef7-239a-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
-	('76cf5bf6-239a-11f1-a702-7008945b491c', 'Sreeja Nambiar', '9900112233', 'Houseboat Area, Near Bridge', 4, 20, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
-	('884fa82f-0bf2-11f1-8d62-7008945b491c', 'Tovino thomas', '9965552452', 'Tovi villa', 8, 51, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
-	('98198932-1126-11f1-9832-7008945b491c', 'My new customer', NULL, 'My new customer address', 13, 82, 1, NULL, '5ec8d2bb-1126-11f1-9832-7008945b491c', '2026-02-24 02:14:48', '2026-02-24 02:14:48'),
-	('98563f49-0b0b-11f1-830b-7008945b491c', 'Test customer', '4417774152', 'Test cust address', 14, 86, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 07:46:22', '2026-02-16 07:46:22'),
-	('a4d94f21-0f68-11f1-8390-7008945b491c', 'Test', NULL, 'Test without mobile', 6, 36, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-21 21:02:34', '2026-02-21 21:02:34'),
-	('a86ec0da-239b-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
-	('a86f7491-239b-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
-	('a8703b24-239b-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
-	('c27b06e9-0f68-11f1-8390-7008945b491c', 'Gggv', NULL, 'Vvv', 6, 33, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-21 21:03:23', '2026-02-21 21:03:23'),
-	('df621d07-0bf5-11f1-8d62-7008945b491c', 'Test add customer', '9965552451', 'Cust addr', 4, 24, 1, 'Notes test', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:43:24', '2026-02-17 11:43:24'),
-	('e338724b-0bd8-11f1-8d62-7008945b491c', 'Anil SK', '6695552417', 'Anil bhavan', 1, 1, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:15:55', '2026-02-17 08:15:55'),
-	('f164ec81-2398-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f165c78e-2398-11f1-a702-7008945b491c', 'Anjali Dev', '9876543210', '22B MG Road, Near Park', 8, 48, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f1660ae1-2398-11f1-a702-7008945b491c', 'Sreekanth Nair', '8765432109', 'Nair Nivas, Civil Station Road', 9, 55, 1, 'Long-time acquaintance', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f166ac9c-2398-11f1-a702-7008945b491c', 'Divya Mohan', '7654321098', 'Plot 5, Kovalam Beach Road', 1, 7, 1, 'Invited for reception', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f166fb14-2398-11f1-a702-7008945b491c', 'Arun Thomas', '6543210987', 'Church Road, Near Parish', 5, 26, 1, 'Church choir member', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f1673532-2398-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f1677e4c-2398-11f1-a702-7008945b491c', 'Pradeep Kumar', '9123456780', 'Near Old Bus Stand', 13, 78, 1, 'VIP – invite in person', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f167cae2-2398-11f1-a702-7008945b491c', 'Abdul Rahman', '8234567891', 'Market Road, Near Mosque', 10, 62, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f168ab11-2398-11f1-a702-7008945b491c', 'Meera Pillai', '7345678902', 'Vaikom Temple Road', 5, 30, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f168f271-2398-11f1-a702-7008945b491c', 'Suresh Bhat', '9456789013', 'Nileshwar Main Road, Ward 5', 14, 86, 1, 'Family friend', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f16931f6-2398-11f1-a702-7008945b491c', 'Bindu Lekshmi', '8567890124', 'Puthiyakavu Junction, Kollam', 2, 8, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f16983f1-2398-11f1-a702-7008945b491c', 'Jijo Varghese', '6678901235', 'Coffee Estate Road, Sulthan Bathery', 12, 75, 1, 'Estate owner', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
-	('f169cf32-2398-11f1-a702-7008945b491c', 'Rekha Chandran', '7789012346', 'Kanhangad Town, 2nd Cross Road', 14, 85, 1, NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41');
+-- Dumping data for table customer_management_db.customers: ~37 rows (approximately)
+INSERT INTO `customers` (`id`, `name`, `mobile_number`, `address`, `district_id`, `city_id`, `state_id`, `notes`, `attendee_count`, `created_by`, `created_at`, `updated_at`) VALUES
+	('151e61ab-239c-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 5, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-21 10:27:20'),
+	('151f6c84-239c-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-19 14:01:10'),
+	('15208756-239c-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 14:01:10', '2026-03-19 14:01:10'),
+	('2fd8ccbf-0ab1-11f1-830b-7008945b491c', 'Jinu abraham', '5582225824', 'Jinu villa', 13, 82, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:15', '2026-02-15 20:59:15'),
+	('3e944b96-0bf2-11f1-8d62-7008945b491c', 'Raj Kumar', '6652225421', 'Raj bhavan', 13, 82, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25'),
+	('4080847f-242e-11f1-a702-7008945b491c', 'Radhamma KK', '9447795450', 'Jibin bhavanam, Pallickal PO', 4, 22, 1, NULL, 3, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-20 07:27:26', '2026-03-21 10:27:04'),
+	('4a36d642-0ab1-11f1-830b-7008945b491c', 'Sheelu shan', '5584447542', 'Sheelu shan villa', 6, 35, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-15 20:59:59', '2026-02-15 20:59:59'),
+	('76cda247-239a-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
+	('76ce2dab-239a-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
+	('76cefef7-239a-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
+	('76cf5bf6-239a-11f1-a702-7008945b491c', 'Sreeja Nambiar', '9900112233', 'Houseboat Area, Near Bridge', 4, 20, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:49:35', '2026-03-19 13:49:35'),
+	('884fa82f-0bf2-11f1-8d62-7008945b491c', 'Tovino thomas', '9965552452', 'Tovi villa', 8, 51, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
+	('98198932-1126-11f1-9832-7008945b491c', 'My new customer', NULL, 'My new customer address', 13, 82, 1, NULL, 1, '5ec8d2bb-1126-11f1-9832-7008945b491c', '2026-02-24 02:14:48', '2026-02-24 02:14:48'),
+	('98563f49-0b0b-11f1-830b-7008945b491c', 'Test customer', '4417774152', 'Test cust address', 14, 86, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 07:46:22', '2026-02-16 07:46:22'),
+	('9ba48b7c-2510-11f1-8ac2-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:27:48', '2026-03-21 10:27:48'),
+	('9ba581f5-2510-11f1-8ac2-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:27:48', '2026-03-21 10:27:48'),
+	('9ba661ea-2510-11f1-8ac2-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:27:48', '2026-03-21 10:27:48'),
+	('a396c768-2510-11f1-8ac2-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:28:01', '2026-03-21 10:28:01'),
+	('a39d8e9c-2510-11f1-8ac2-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:28:01', '2026-03-21 10:28:01'),
+	('a39e94ed-2510-11f1-8ac2-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-21 10:28:01', '2026-03-21 10:28:01'),
+	('a4d94f21-0f68-11f1-8390-7008945b491c', 'Test', NULL, 'Test without mobile', 6, 36, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-21 21:02:34', '2026-02-21 21:02:34'),
+	('a86ec0da-239b-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
+	('a86f7491-239b-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
+	('a8703b24-239b-11f1-a702-7008945b491c', 'Thomas Mathew', NULL, 'Munnar Town, Near KSRTC', 6, 33, 1, 'Tea estate manager', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:58:07', '2026-03-19 13:58:07'),
+	('c27b06e9-0f68-11f1-8390-7008945b491c', 'Gggv', NULL, 'Vvv', 6, 33, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-21 21:03:23', '2026-02-21 21:03:23'),
+	('df621d07-0bf5-11f1-8d62-7008945b491c', 'Test add customer', '9965552451', 'Cust addr', 4, 24, 1, 'Notes test', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:43:24', '2026-02-17 11:43:24'),
+	('e338724b-0bd8-11f1-8d62-7008945b491c', 'Anil SK', '6695552417', 'Anil bhavan', 1, 1, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 08:15:55', '2026-02-17 08:15:55'),
+	('f164ec81-2398-11f1-a702-7008945b491c', 'Rahul Krishnan', NULL, 'TC 14/A, Potheri Road', 7, 38, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f165c78e-2398-11f1-a702-7008945b491c', 'Anjali Dev', '9876543210', '22B MG Road, Near Park', 8, 48, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f1660ae1-2398-11f1-a702-7008945b491c', 'Sreekanth Nair', '8765432109', 'Nair Nivas, Civil Station Road', 9, 55, 1, 'Long-time acquaintance', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f166ac9c-2398-11f1-a702-7008945b491c', 'Divya Mohan', '7654321098', 'Plot 5, Kovalam Beach Road', 1, 7, 1, 'Invited for reception', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f166fb14-2398-11f1-a702-7008945b491c', 'Arun Thomas', '6543210987', 'Church Road, Near Parish', 5, 26, 1, 'Church choir member', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f1673532-2398-11f1-a702-7008945b491c', 'Fathima Beevi', NULL, 'Beach Area, 3rd Lane', 11, 68, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f1677e4c-2398-11f1-a702-7008945b491c', 'Pradeep Kumar', '9123456780', 'Near Old Bus Stand', 13, 78, 1, 'VIP – invite in person', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f167cae2-2398-11f1-a702-7008945b491c', 'Abdul Rahman', '8234567891', 'Market Road, Near Mosque', 10, 62, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f168ab11-2398-11f1-a702-7008945b491c', 'Meera Pillai', '7345678902', 'Vaikom Temple Road', 5, 30, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f168f271-2398-11f1-a702-7008945b491c', 'Suresh Bhat', '9456789013', 'Nileshwar Main Road, Ward 5', 14, 86, 1, 'Family friend', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f16931f6-2398-11f1-a702-7008945b491c', 'Bindu Lekshmi', '8567890124', 'Puthiyakavu Junction, Kollam', 2, 8, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f16983f1-2398-11f1-a702-7008945b491c', 'Jijo Varghese', '6678901235', 'Coffee Estate Road, Sulthan Bathery', 12, 75, 1, 'Estate owner', 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
+	('f169cf32-2398-11f1-a702-7008945b491c', 'Rekha Chandran', '7789012346', 'Kanhangad Town, 2nd Cross Road', 14, 85, 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41');
 
 -- Dumping structure for table customer_management_db.districts
 CREATE TABLE IF NOT EXISTS `districts` (
@@ -268,6 +293,7 @@ CREATE TABLE IF NOT EXISTS `event_customers` (
 -- Dumping data for table customer_management_db.event_customers: ~15 rows (approximately)
 INSERT INTO `event_customers` (`id`, `event_id`, `customer_id`, `invitation_status_id`, `care_of_id`, `attendee_count`, `attached_by`, `created_at`, `updated_at`) VALUES
 	('0ffd1a34-40c1-f5aa-be4f-b9f95ecd669c', '32d1f3ca-f87c-d7f9-442c-283dcd159a51', 'e338724b-0bd8-11f1-8d62-7008945b491c', 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-19 04:13:43', '2026-02-19 04:13:43'),
+	('1cb84c50-fac8-5c2d-3b61-8186fa38e814', '5df6960e-c2eb-4ff7-2eba-9e2b3ed6f3d9', '4080847f-242e-11f1-a702-7008945b491c', 1, 10, 6, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-20 07:28:19', '2026-03-20 07:28:19'),
 	('32a44281-c0a9-4e32-bd16-5c7dc21ec23a', '51da4c9d-2cff-7de2-f8f2-4fbbc6ec12a8', 'c27b06e9-0f68-11f1-8390-7008945b491c', 1, NULL, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-21 21:03:24', '2026-02-21 21:03:24'),
 	('35bc3a2a-b355-4c16-8a38-b137ed3782c6', '3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', 'f167cae2-2398-11f1-a702-7008945b491c', 3, 8, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
 	('4765690a-dc4a-79eb-fbcc-40b40d0367cb', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 3, 12, 1, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-16 05:42:58', '2026-02-26 09:55:13'),
@@ -329,7 +355,7 @@ CREATE TABLE IF NOT EXISTS `events` (
   CONSTRAINT `events_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.events: ~16 rows (approximately)
+-- Dumping data for table customer_management_db.events: ~15 rows (approximately)
 INSERT INTO `events` (`id`, `name`, `event_date`, `event_type_id`, `event_category`, `notes`, `created_by`, `created_at`, `updated_at`, `deleted_at`) VALUES
 	('04f035dd-5db5-b3ec-89e4-d6587d4fc7c2', 'Test event', '2026-05-26', 2, 'self_event', NULL, '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-26 08:23:03', '2026-02-26 08:23:03', NULL),
 	('0688fed0-ed1c-3c08-2e16-cc0cd5a8a1d3', 'Cust event test', '2029-02-17', 4, 'customer_event', 'Testing customer event flow', '23176fe7-0a50-11f1-b752-7008945b491c', '2026-02-17 11:17:25', '2026-02-17 11:17:25', NULL),
@@ -388,7 +414,7 @@ CREATE TABLE IF NOT EXISTS `gifts` (
   CONSTRAINT `gifts_ibfk_2` FOREIGN KEY (`gift_type_id`) REFERENCES `gift_types` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Dumping data for table customer_management_db.gifts: ~11 rows (approximately)
+-- Dumping data for table customer_management_db.gifts: ~10 rows (approximately)
 INSERT INTO `gifts` (`id`, `event_id`, `customer_id`, `gift_type_id`, `value`, `description`, `created_at`, `updated_at`) VALUES
 	('036d6db0-9f91-af8f-bea6-de6c17c3645e', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 1, 5500.00, NULL, '2026-02-16 05:43:25', '2026-02-16 05:43:43'),
 	('0661acb7-3cc1-40ac-8ed2-1bdf2b4c7e1a', '3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', 'f167cae2-2398-11f1-a702-7008945b491c', 1, 1000.00, NULL, '2026-03-19 13:38:41', '2026-03-19 13:38:41'),
@@ -396,6 +422,7 @@ INSERT INTO `gifts` (`id`, `event_id`, `customer_id`, `gift_type_id`, `value`, `
 	('2e952bae-428f-6689-83df-551897d33dee', '3fd1bb0b-f9d6-d9f4-a77a-983f8e862a4a', '2fd8ccbf-0ab1-11f1-830b-7008945b491c', 3, 2000.00, 'Purchase voucher', '2026-02-17 08:14:27', '2026-02-17 08:14:27'),
 	('309546b9-94d3-98c3-0f7d-ed976b012847', 'aded8b0c-892c-2dfe-21d0-831688ef00c0', '98198932-1126-11f1-9832-7008945b491c', 1, 5000.00, NULL, '2026-02-24 02:15:55', '2026-02-24 02:15:55'),
 	('366fb006-31df-2b09-fac1-4489c4f164e0', '32d1f3ca-f87c-d7f9-442c-283dcd159a51', 'e338724b-0bd8-11f1-8d62-7008945b491c', 1, 582.00, NULL, '2026-02-19 04:13:43', '2026-02-19 04:13:43'),
+	('4865e0ed-e2a2-3f78-79c9-7d44aa1afb23', '5df6960e-c2eb-4ff7-2eba-9e2b3ed6f3d9', '4080847f-242e-11f1-a702-7008945b491c', 1, 2000.00, NULL, '2026-03-20 07:28:19', '2026-03-20 07:28:19'),
 	('571690f2-dd7a-ce2a-46ec-eac4aeb69466', 'd5be1eca-cee6-1ed1-765a-90ee8b1a06f0', '884fa82f-0bf2-11f1-8d62-7008945b491c', 2, 9999.00, 'Dress', '2026-02-17 11:19:29', '2026-02-17 11:19:29'),
 	('7e71f124-f3e5-4045-ad3a-57abb05823c8', '0688fed0-ed1c-3c08-2e16-cc0cd5a8a1d3', '3e944b96-0bf2-11f1-8d62-7008945b491c', 1, 2599.00, 'Watch', '2026-02-17 11:17:26', '2026-02-17 11:17:26'),
 	('8af1b717-add0-4329-909b-c73e25d8cc4c', '5c5024e5-95ec-1e1d-5ebf-906d775ac0bc', '4a36d642-0ab1-11f1-830b-7008945b491c', 2, 2000.00, 'Dress', '2026-02-16 05:44:00', '2026-02-16 05:44:00'),

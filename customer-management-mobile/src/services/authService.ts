@@ -3,7 +3,7 @@ import { api } from './api';
 import { API_ENDPOINTS } from '../config/api';
 import { STORAGE_KEYS } from '../config/env';
 import { clearAllSensitiveData } from '../utils/storage';
-import type { LoginCredentials, AuthResponse, ApiResponse, UserRole } from '../types';
+import type { LoginCredentials, AuthResponse, ApiResponse, UserRole, AdminRegistrationInput } from '../types';
 
 /**
  * Check server/device clock drift using the health endpoint.
@@ -147,5 +147,13 @@ export const authService = {
       newPassword,
       confirmPassword,
     });
+  },
+
+  /**
+   * Self-register as a new admin (public — no token required).
+   * Account is created with status = 'pending' and requires Super Admin approval.
+   */
+  register: async (data: AdminRegistrationInput): Promise<ApiResponse<{ id: string; name: string; mobileNumber: string; status: string }>> => {
+    return await api.post(API_ENDPOINTS.AUTH.REGISTER, data);
   },
 };

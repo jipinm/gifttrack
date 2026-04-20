@@ -89,6 +89,14 @@ function CustomerCard({ customer, onPress }: CustomerCardProps) {
               </Text>
             </View>
 
+            {/* Attendee Count */}
+            <View style={styles.row}>
+              <Text style={styles.icon}>👥</Text>
+              <Text style={styles.value}>
+                {customer.attendeeCount ?? 1} attendee{(customer.attendeeCount ?? 1) > 1 ? 's' : ''}
+              </Text>
+            </View>
+
             {/* Gift Summary (if any) */}
             {customer.giftCount !== undefined && customer.giftCount > 0 && (
               <View style={styles.giftSummary}>

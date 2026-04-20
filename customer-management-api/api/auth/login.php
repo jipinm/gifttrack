@@ -90,7 +90,30 @@ try {
         }
         Response::error('Invalid credentials', 401);
     }
-    
+
+    // Check registration approval status (only for admin role; superadmin is always active)
+    if ($user['role'] === 'admin') {
+        $userStatus = $user['status'] ?? 'approved';
+        if ($userStatus === 'pending') {
+            try {
+                logAuth($mobileNumber, false, 'Login blocked: registration pending');
+            } catch (Exception $e) { }
+            Response::error(
+                'Your registration request is pending approval by the Super Admin. You will be able to log in once approved.',
+                403
+            );
+        }
+        if ($userStatus === 'rejected') {
+            try {
+                logAuth($mobileNumber, false, 'Login blocked: registration rejected');
+            } catch (Exception $e) { }
+            Response::error(
+                'Your registration request has been rejected. Please contact the Super Admin for assistance.',
+                403
+            );
+        }
+    }
+
     // Generate JWT token
     $tokenPayload = [
         'id' => $user['id'],

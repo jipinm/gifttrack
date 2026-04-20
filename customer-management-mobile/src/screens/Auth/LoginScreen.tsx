@@ -16,6 +16,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useForm, Controller } from 'react-hook-form';
 import { useAuth } from '../../context/AuthContext';
 import { colors, spacing, typography, borderRadius, shadows } from '../../styles/theme';
+import type { AuthStackParamList } from '../../navigation/AuthNavigator';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,8 +27,11 @@ interface LoginFormData {
   password: string;
 }
 
+type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
 export default function LoginScreen() {
   const { login } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secureTextEntry, setSecureTextEntry] = useState(true);
@@ -283,6 +289,18 @@ export default function LoginScreen() {
                   {isLoading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </View>
+
+              {/* Register Link */}
+              <Button
+                mode="text"
+                onPress={() => navigation.navigate('Register')}
+                disabled={isLoading}
+                style={styles.registerButton}
+                labelStyle={styles.registerButtonLabel}
+                testID="register-button"
+              >
+                Create Admin Account
+              </Button>
             </View>
 
             {/* Footer */}
@@ -428,5 +446,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: typography.fontSize.sm,
     marginTop: spacing.md,
+  },
+  registerButton: {
+    marginTop: spacing.xs,
+  },
+  registerButtonLabel: {
+    color: colors.primary,
+    fontSize: typography.fontSize.sm,
   },
 });

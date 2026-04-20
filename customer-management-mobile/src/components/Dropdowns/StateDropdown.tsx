@@ -20,6 +20,8 @@ interface StateDropdownProps {
   error?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Optional override: if provided, these states are used instead of the ones from MasterDataContext */
+  states?: State[];
 }
 
 export default function StateDropdown({
@@ -30,12 +32,18 @@ export default function StateDropdown({
   error,
   disabled = false,
   required = false,
+  states: statesProp,
 }: StateDropdownProps) {
-  const { masterData, isLoading } = useMasterData();
+  const { masterData, isLoading: contextLoading } = useMasterData();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const states = useMemo(() => masterData?.states ?? [], [masterData]);
+  // Use prop-supplied states if provided (e.g. pre-auth screens), otherwise fall back to context
+  const isLoading = statesProp ? false : contextLoading;
+  const states = useMemo(
+    () => statesProp ?? masterData?.states ?? [],
+    [statesProp, masterData]
+  );
 
   const selectedState = useMemo(
     () => states.find((state) => state.id === value) ?? null,

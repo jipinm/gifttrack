@@ -253,6 +253,11 @@ export default function CustomerDetailsScreen() {
             </Text>
           </View>
 
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>👥 Attendees</Text>
+            <Text style={styles.infoValue}>{customer.attendeeCount ?? 1}</Text>
+          </View>
+
           {customer.notes && (
             <>
               <Divider style={styles.divider} />

@@ -41,8 +41,10 @@ Options -MultiViews
     # Authentication Routes
     # ==================================================
     RewriteRule ^api/auth/login/?$ api/auth/login.php [L,QSA]
+    RewriteRule ^api/auth/register/?$ api/auth/register.php [L,QSA]
     RewriteRule ^api/auth/logout/?$ api/auth/logout.php [L,QSA]
     RewriteRule ^api/auth/verify/?$ api/auth/verify.php [L,QSA]
+    RewriteRule ^api/auth/refresh/?$ api/auth/refresh.php [L,QSA]
     RewriteRule ^api/auth/change-password/?$ api/auth/change-password.php [L,QSA]
     
     # ==================================================
@@ -132,7 +134,34 @@ Options -MultiViews
     
     # DELETE /api/admins/{id}/delete
     RewriteRule ^api/admins/([a-f0-9\-]+)/delete/?$ api/admins/delete.php?id=$1 [L,QSA]
-    
+
+    # ==================================================
+    # Admin Deletion Request Routes
+    # ==================================================
+    # POST /api/admins/deletion-requests/create (admin submits request)
+    RewriteRule ^api/admins/deletion-requests/create/?$ api/admins/deletion-requests/create.php [L,QSA]
+
+    # GET /api/admins/deletion-requests/index (superadmin lists requests)
+    RewriteRule ^api/admins/deletion-requests/index/?$ api/admins/deletion-requests/index.php [L,QSA]
+
+    # GET /api/admins/deletion-requests (superadmin lists requests - base path)
+    RewriteRule ^api/admins/deletion-requests/?$ api/admins/deletion-requests/index.php [L,QSA]
+
+    # PUT /api/admins/deletion-requests/update?id={id} (superadmin approve/reject)
+    RewriteRule ^api/admins/deletion-requests/update/?$ api/admins/deletion-requests/update.php [L,QSA]
+
+    # ==================================================
+    # Admin Registration Request Routes
+    # ==================================================
+    # GET /api/admins/registration-requests/index (superadmin lists pending registrations)
+    RewriteRule ^api/admins/registration-requests/index/?$ api/admins/registration-requests/index.php [L,QSA]
+
+    # GET /api/admins/registration-requests (base path alias)
+    RewriteRule ^api/admins/registration-requests/?$ api/admins/registration-requests/index.php [L,QSA]
+
+    # PUT /api/admins/registration-requests/update?id={id} (superadmin approve/reject)
+    RewriteRule ^api/admins/registration-requests/update/?$ api/admins/registration-requests/update.php [L,QSA]
+
     # ==================================================
     # Master Data Routes
     # ==================================================

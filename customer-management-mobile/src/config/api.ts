@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     LOGIN: '/api/auth/login',
+    REGISTER: '/api/auth/register',
     LOGOUT: '/api/auth/logout',
     VERIFY: '/api/auth/verify',
     REFRESH: '/api/auth/refresh',
@@ -71,6 +72,17 @@ export const API_ENDPOINTS = {
     CREATE: '/api/admins/create',
     UPDATE: '/api/admins/update',
     DELETE: '/api/admins/delete',
+    // Deletion requests
+    DELETION_REQUESTS: {
+      CREATE: '/api/admins/deletion-requests/create',
+      INDEX: '/api/admins/deletion-requests/index',
+      UPDATE: '/api/admins/deletion-requests/update',
+    },
+    // Registration requests (Super Admin approval)
+    REGISTRATION_REQUESTS: {
+      INDEX: '/api/admins/registration-requests/index',
+      UPDATE: '/api/admins/registration-requests/update',
+    },
   },
 
   // Master Data

@@ -5,7 +5,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors, typography } from '../styles/theme';
-import { ProfileScreen, ChangePasswordScreen } from '../screens/Profile';
+import { ProfileScreen, ChangePasswordScreen, RequestAccountDeletionScreen } from '../screens/Profile';
 import {
   MasterDataCategoriesScreen,
   MasterDataListScreen,
@@ -16,6 +16,7 @@ import type { MasterDataCategory } from '../types';
 export type ProfileStackParamList = {
   Profile: undefined;
   ChangePassword: undefined;
+  RequestAccountDeletion: undefined;
   MasterDataCategories: undefined;
   MasterDataList: {
     category: MasterDataCategory;
@@ -46,6 +47,11 @@ export default function ProfileStackNavigator() {
         name="ChangePassword"
         component={ChangePasswordScreen}
         options={{ title: 'Change Password' }}
+      />
+      <Stack.Screen
+        name="RequestAccountDeletion"
+        component={RequestAccountDeletionScreen}
+        options={{ title: 'Request Account Deletion' }}
       />
       <Stack.Screen
         name="MasterDataCategories"

@@ -319,7 +319,7 @@ function handleApiError<T = unknown>(error: unknown): ApiResponse<T> {
       return {
         success: false,
         message: errorMessage,
-        errors: responseData?.errors,
+        errors: responseData?.errors ?? responseData?.details,
       };
     } else if (axiosError.request) {
       // Network error
