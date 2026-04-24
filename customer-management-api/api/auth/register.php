@@ -59,9 +59,7 @@ try {
     }
 
     $address = isset($input['address']) ? trim($input['address']) : '';
-    if (empty($address)) {
-        $errors['address'] = 'Address is required';
-    }
+    // Address is optional — do not validate as required
 
     if (!empty($errors)) {
         Response::error('Validation failed', 400, $errors);

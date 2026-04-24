@@ -334,7 +334,7 @@ export interface AdminRegistrationInput {
   name: string;
   mobileNumber: string;
   password: string;
-  address: string;
+  address?: string;
   stateId?: number | null;
   districtId?: number | null;
   cityId?: number | null;

@@ -53,6 +53,13 @@ export const adminService = {
   },
 
   /**
+   * Permanently delete own account (Super Admin only — no review queue)
+   */
+  selfDelete: async (): Promise<ApiResponse<{ userId: string }>> => {
+    return await api.delete<{ userId: string }>(API_ENDPOINTS.ADMINS.SELF_DELETE);
+  },
+
+  /**
    * Get all deletion requests (Superadmin only)
    * @param status Optional filter: 'pending' | 'approved' | 'rejected'
    */

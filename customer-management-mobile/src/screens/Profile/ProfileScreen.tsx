@@ -275,6 +275,23 @@ export default function ProfileScreen() {
                   descriptionStyle={styles.listDescription}
                 />
               </TouchableOpacity>
+
+              <Divider style={styles.divider} />
+
+              <TouchableOpacity onPress={() => navigation.navigate('RequestAccountDeletion')}>
+                <List.Item
+                  title="Delete Account"
+                  description="Permanently delete your Super Admin account"
+                  left={(props) => (
+                    <List.Icon {...props} icon="account-remove" color={colors.error} />
+                  )}
+                  right={(props) => (
+                    <List.Icon {...props} icon="chevron-right" color={colors.textSecondary} />
+                  )}
+                  titleStyle={[styles.listTitle, { color: colors.error }]}
+                  descriptionStyle={styles.listDescription}
+                />
+              </TouchableOpacity>
             </View>
           </Animated.View>
         )}

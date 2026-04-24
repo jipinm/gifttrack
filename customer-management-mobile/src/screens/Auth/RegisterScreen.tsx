@@ -119,18 +119,15 @@ export default function RegisterScreen() {
     return true;
   };
 
-  const validateAddress = (v: string): string | true => {
-    if (!v.trim()) return 'Address is required';
+  const validateAddress = (_v: string): string | true => {
+    // Address is optional — do not block registration if empty
     return true;
   };
 
   const validateLocationFields = (): boolean => {
-    const errs = {
-      district: !selectedDistrict ? 'District is required' : '',
-      city: !selectedCity ? 'City is required' : '',
-    };
-    setLocationErrors(errs);
-    return !errs.district && !errs.city;
+    // Location fields are optional — clear any previous errors and proceed
+    setLocationErrors({ district: '', city: '' });
+    return true;
   };
 
   // ── Submit ───────────────────────────────────────────────────────────────────
@@ -145,7 +142,7 @@ export default function RegisterScreen() {
           name: data.name.trim(),
           mobileNumber: data.mobileNumber,
           password: data.password,
-          address: data.address.trim(),
+          address: data.address?.trim() || undefined,
           stateId: selectedState?.id ?? null,
           districtId: selectedDistrict?.id ?? null,
           cityId: selectedCity?.id ?? null,
@@ -238,7 +235,7 @@ export default function RegisterScreen() {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <TextInput
-              label="Mobile Number *"
+              label="Mobile Number (Sign-in ID) *"
               value={value}
               onChangeText={(v) => {
                 onChange(v);
@@ -331,7 +328,7 @@ export default function RegisterScreen() {
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.inputContainer}>
             <TextInput
-              label="Address *"
+              label="Address (Optional)"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}

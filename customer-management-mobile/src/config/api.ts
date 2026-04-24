@@ -72,6 +72,7 @@ export const API_ENDPOINTS = {
     CREATE: '/api/admins/create',
     UPDATE: '/api/admins/update',
     DELETE: '/api/admins/delete',
+    SELF_DELETE: '/api/admins/self-delete',
     // Deletion requests
     DELETION_REQUESTS: {
       CREATE: '/api/admins/deletion-requests/create',

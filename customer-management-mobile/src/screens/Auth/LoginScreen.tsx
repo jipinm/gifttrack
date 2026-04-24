@@ -8,7 +8,8 @@ import {
   View,
   StyleSheet,
   Animated,
-  Dimensions,
+  Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
@@ -19,8 +20,6 @@ import { colors, spacing, typography, borderRadius, shadows } from '../../styles
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-
-const { width, height } = Dimensions.get('window');
 
 interface LoginFormData {
   mobileNumber: string;
@@ -35,6 +34,10 @@ export default function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+
+  // Responsive dimensions — use hook so values update on orientation change (critical on iPad)
+  const { width, height } = useWindowDimensions();
+  const isTablet = Platform.OS === 'ios' && width >= 768;
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -76,6 +79,7 @@ export default function LoginScreen() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({
+    mode: 'onChange',
     defaultValues: {
       mobileNumber: '',
       password: '',
@@ -129,10 +133,31 @@ export default function LoginScreen() {
         end={{ x: 1, y: 1 }}
       />
 
-      {/* Decorative circles */}
-      <View style={styles.decorativeCircle1} />
-      <View style={styles.decorativeCircle2} />
-      <View style={styles.decorativeCircle3} />
+      {/* Decorative circles — pointerEvents="none" prevents them intercepting taps on iPad */}
+      <View
+        pointerEvents="none"
+        style={[styles.decorativeCircleBase, {
+          width: width * 0.8, height: width * 0.8, borderRadius: width * 0.4,
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          top: -width * 0.3, right: -width * 0.2,
+        }]}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.decorativeCircleBase, {
+          width: width * 0.6, height: width * 0.6, borderRadius: width * 0.3,
+          backgroundColor: 'rgba(255, 255, 255, 0.08)',
+          bottom: height * 0.15, left: -width * 0.3,
+        }]}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.decorativeCircleBase, {
+          width: width * 0.4, height: width * 0.4, borderRadius: width * 0.2,
+          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+          bottom: -width * 0.1, right: -width * 0.1,
+        }]}
+      />
 
       <KeyboardAwareScrollView
         style={styles.keyboardView}
@@ -167,10 +192,11 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
 
-          {/* Glass Card */}
+          {/* Glass Card — constrained width on iPad to prevent full-width stretch */}
           <Animated.View
             style={[
               styles.glassCard,
+              isTablet && { maxWidth: 560, alignSelf: 'center', width: '100%' },
               {
                 opacity: fadeAnim,
                 transform: [
@@ -301,6 +327,7 @@ export default function LoginScreen() {
               >
                 Create Admin Account
               </Button>
+
             </View>
 
             {/* Footer */}
@@ -323,32 +350,8 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
   },
-  decorativeCircle1: {
+  decorativeCircleBase: {
     position: 'absolute',
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    top: -width * 0.3,
-    right: -width * 0.2,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: width * 0.3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    bottom: height * 0.15,
-    left: -width * 0.3,
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    width: width * 0.4,
-    height: width * 0.4,
-    borderRadius: width * 0.2,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    bottom: -width * 0.1,
-    right: -width * 0.1,
   },
   keyboardView: {
     flex: 1,

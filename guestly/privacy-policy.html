@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Guestly Privacy Policy – Learn how we collect, use, and protect your personal data." />
+  <meta name="keywords" content="Guestly, privacy policy, data protection, guest management" />
+  <meta name="author" content="Jipin Kumar M" />
+  <title>Guestly – Privacy Policy</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #6C63FF;
+      --primary-dark: #574fd6;
+      --primary-light: #ede9ff;
+      --accent: #FF6584;
+      --success: #22c55e;
+      --whatsapp: #25D366;
+      --text-dark: #1a1a2e;
+      --text-muted: #6b7280;
+      --bg: #f8f7ff;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --shadow: 0 4px 24px rgba(108, 99, 255, 0.09);
+      --shadow-hover: 0 8px 36px rgba(108, 99, 255, 0.18);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg);
+      color: var(--text-dark);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-dark);
+    }
+
+    .nav-logo .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+    }
+
+    .nav-logo span {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .nav-cta {
+      background: var(--primary);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .nav-cta:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 52vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 700px 500px at 30% 40%, rgba(108, 99, 255, 0.25) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 400px at 75% 70%, rgba(255, 101, 132, 0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .hero-blob-1 { width: 400px; height: 400px; background: var(--primary); top: -100px; right: -80px; }
+    .hero-blob-2 { width: 300px; height: 300px; background: var(--accent); bottom: -80px; left: -60px; }
+
+    .hero-content {
+      position: relative; z-index: 1;
+      max-width: 700px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(108, 99, 255, 0.25);
+      border: 1px solid rgba(108, 99, 255, 0.4);
+      color: #c4bfff;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .hero-app-icon {
+      width: 96px; height: 96px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
+      font-size: 44px; color: #fff;
+      box-shadow: 0 20px 60px rgba(108, 99, 255, 0.4);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 .gradient-text {
+      background: linear-gradient(135deg, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: #94a3b8;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 90px 24px; }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 5px 14px;
+      border-radius: 50px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 800;
+      color: var(--text-dark);
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 660px;
+      line-height: 1.7;
+    }
+
+    /* ── INTRO STRIP ── */
+    .intro-strip {
+      background: #fff;
+    }
+
+    .intro-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 8px 18px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .meta-pill i { color: var(--primary); }
+
+    /* ── POLICY CARDS GRID ── */
+    .policy-bg { background: var(--bg); }
+
+    .policy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 24px;
+      margin-top: 0;
+    }
+
+    .policy-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+
+    .policy-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .policy-card-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    .policy-card-icon.purple { background: #ede9ff; color: var(--primary); }
+    .policy-card-icon.pink   { background: #fde8ed; color: var(--accent); }
+    .policy-card-icon.green  { background: #dcfce7; color: var(--success); }
+    .policy-card-icon.blue   { background: #dbeafe; color: #3b82f6; }
+    .policy-card-icon.orange { background: #fff7ed; color: #f97316; }
+    .policy-card-icon.teal   { background: #f0fdfa; color: #14b8a6; }
+
+    .policy-card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 10px;
+    }
+
+    .policy-card p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .policy-card ul {
+      list-style: none;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .policy-card ul li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.855rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .policy-card ul li::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    /* ── DETAIL SECTION ── */
+    .detail-section { background: #fff; }
+
+    .detail-block {
+      border-left: 3px solid var(--primary);
+      padding-left: 24px;
+      margin-bottom: 40px;
+    }
+
+    .detail-block:last-child { margin-bottom: 0; }
+
+    .detail-block h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .detail-block h3 i {
+      font-size: 14px;
+      color: var(--primary);
+      background: var(--primary-light);
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center; justify-content: center;
+    }
+
+    .detail-block p, .detail-block li {
+      font-size: 0.93rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+    }
+
+    .detail-block ul {
+      list-style: none;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .detail-block ul li {
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+
+    .detail-block ul li::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
+
+    /* ── RIGHTS CARD (dark) ── */
+    .rights-section { background: var(--bg); }
+
+    .rights-card {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border-radius: 28px;
+      padding: 60px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .rights-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 500px 400px at 0% 100%, rgba(108, 99, 255, 0.22) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .rights-card-header {
+      margin-bottom: 40px;
+      position: relative; z-index: 1;
+    }
+
+    .rights-card-header .section-label {
+      background: rgba(108, 99, 255, 0.2);
+      color: #c4bfff;
+      border: 1px solid rgba(108, 99, 255, 0.35);
+    }
+
+    .rights-card-header h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.8px;
+      margin-bottom: 10px;
+    }
+
+    .rights-card-header p {
+      color: #94a3b8;
+      font-size: 0.975rem;
+      line-height: 1.7;
+      max-width: 580px;
+    }
+
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      position: relative; z-index: 1;
+    }
+
+    .right-item {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: background 0.2s;
+    }
+
+    .right-item:hover { background: rgba(255, 255, 255, 0.1); }
+
+    .right-item-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+
+    .right-item-icon.purple { background: rgba(108, 99, 255, 0.25); color: #a78bfa; }
+    .right-item-icon.pink   { background: rgba(255, 101, 132, 0.2); color: #f9a8d4; }
+    .right-item-icon.green  { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+    .right-item-icon.blue   { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    .right-item-icon.orange { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+    .right-item-icon.teal   { background: rgba(20, 184, 166, 0.2); color: #5eead4; }
+
+    .right-item-body h4 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .right-item-body p {
+      font-size: 0.8rem;
+      color: #64748b;
+      line-height: 1.55;
+    }
+
+    /* ── CONTACT CTA ── */
+    .contact-cta { background: #fff; }
+
+    .cta-card {
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      border-radius: 28px;
+      padding: 60px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 400px 300px at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-card h2 {
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.8px;
+      margin-bottom: 14px;
+      position: relative; z-index: 1;
+    }
+
+    .cta-card p {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.8);
+      max-width: 500px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+      position: relative; z-index: 1;
+    }
+
+    .cta-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative; z-index: 1;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.2s;
+      cursor: pointer; border: none;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+
+    .btn-white {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.15);
+    }
+
+    .btn-white:hover { box-shadow: 0 12px 36px rgba(0,0,0,0.2); }
+
+    .btn-ghost-light {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      backdrop-filter: blur(8px);
+    }
+
+    .btn-ghost-light:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #1a1a2e;
+      color: #94a3b8;
+      padding: 48px 24px 32px;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+
+    .footer-logo .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 18px;
+    }
+
+    .footer-logo span {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .footer-links a {
+      color: #64748b;
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: #a78bfa; }
+
+    .footer-divider {
+      width: 100%;
+      height: 1px;
+      background: #2d2d4e;
+    }
+
+    .footer-bottom {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.82rem;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      section { padding: 64px 20px; }
+
+      .rights-card { padding: 36px 24px; }
+      .cta-card { padding: 40px 24px; }
+
+      .hero { padding: 110px 20px 70px; }
+      .hero h1 { letter-spacing: -1px; }
+    }
+
+    @media (max-width: 480px) {
+      .nav-inner { padding: 0 16px; }
+      .rights-card { padding: 28px 16px; }
+      .cta-card { padding: 32px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">
+        <div class="logo-icon"><i class="fa-solid fa-calendar-check"></i></div>
+        <span>Guestly</span>
+      </a>
+      <a href="index.html#support" class="nav-cta">Get Support</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <i class="fa-solid fa-shield-halved"></i> Legal &amp; Privacy
+      </div>
+
+      <div class="hero-app-icon">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+
+      <h1>
+        <span class="gradient-text">Privacy</span> Policy
+      </h1>
+
+      <p>
+        Your privacy matters to us. This policy explains what data Guestly collects,
+        how we use it, and the choices you have.
+      </p>
+    </div>
+  </section>
+
+  <!-- INTRO STRIP -->
+  <section class="intro-strip">
+    <div class="container">
+      <div class="section-label">
+        <i class="fa-solid fa-file-shield"></i> Overview
+      </div>
+      <h2 class="section-title">Our Commitment to Your Privacy</h2>
+      <p class="section-subtitle">
+        Guestly ("we", "our", or "us") is committed to protecting your personal information.
+        This Privacy Policy describes how we collect, use, store, and share information when
+        you use the Guestly mobile application and related services. By using Guestly, you
+        agree to the practices described in this policy.
+      </p>
+
+      <div class="intro-meta">
+        <span class="meta-pill"><i class="fa-solid fa-calendar"></i> Effective: February 14, 2026</span>
+        <span class="meta-pill"><i class="fa-solid fa-rotate"></i> Last Updated: February 14, 2026</span>
+        <span class="meta-pill"><i class="fa-solid fa-envelope"></i> jipinm@gmail.com</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT WE COLLECT – CARDS -->
+  <section class="policy-bg">
+    <div class="container">
+      <div style="margin-bottom: 48px;">
+        <div class="section-label">
+          <i class="fa-solid fa-database"></i> Data Collection
+        </div>
+        <h2 class="section-title">What Information We Collect</h2>
+        <p class="section-subtitle">
+          We only collect information that is necessary to deliver and improve the Guestly experience.
+        </p>
+      </div>
+
+      <div class="policy-grid">
+
+        <div class="policy-card">
+          <div class="policy-card-icon purple">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <h3>Account Information</h3>
+          <p>Basic details you provide when you create or manage your account.</p>
+          <ul>
+            <li>Name and display name</li>
+            <li>Phone number</li>
+            <li>Address</li>
+            <li>State/Province</li>
+            <li>District</li>
+            <li>City</li>
+          </ul>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-card-icon pink">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <h3>Event &amp; Guest Data</h3>
+          <p>Information you enter while managing events and guest lists inside the app.</p>
+          <ul>
+            <li>Event names, dates &amp; venues</li>
+            <li>Guest names &amp; contact details</li>
+            <li>RSVP and attendance status</li>
+            <li>Gift records and notes</li>
+          </ul>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-card-icon blue">
+            <i class="fa-solid fa-mobile-screen"></i>
+          </div>
+          <h3>Device &amp; Usage Data</h3>
+          <p>Technical information collected automatically to maintain app performance.</p>
+          <ul>
+            <li>Device type and OS version</li>
+            <li>App version and crash reports</li>
+            <li>Feature usage patterns</li>
+            <li>IP address (anonymised)</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW WE USE DATA – DETAIL BLOCKS -->
+  <section class="detail-section">
+    <div class="container">
+      <div style="margin-bottom: 48px;">
+        <div class="section-label">
+          <i class="fa-solid fa-gears"></i> Data Usage
+        </div>
+        <h2 class="section-title">How We Use Your Information</h2>
+        <p class="section-subtitle">
+          We use the information we collect strictly to operate, improve, and support the Guestly app.
+        </p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-circle-check"></i> Providing Core Services</h3>
+        <p>We use your account and event data to deliver the core features of Guestly — creating and managing guest lists, scheduling events, tracking RSVPs and gifts, and syncing your data across your devices.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-chart-line"></i> Improving the App</h3>
+        <p>Aggregated and anonymised usage data helps us understand which features are most valuable, identify bugs, and prioritise improvements. We do not use personal data for this purpose without your consent.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-bell"></i> Notifications &amp; Reminders</h3>
+        <p>If you enable push notifications, we use your event data to send you timely reminders about upcoming events and guest activity. You can manage notification preferences at any time in your device settings.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-headset"></i> Customer Support</h3>
+        <p>When you contact us for support via email, phone, or WhatsApp, we may use relevant account information to diagnose and resolve your issue. Support communications are retained only as long as necessary.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-shield-halved"></i> Security &amp; Fraud Prevention</h3>
+        <p>We use technical and account data to detect suspicious activity, prevent unauthorised access, and keep your account secure. This processing is essential to the safety of all users.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DATA SHARING -->
+  <section class="policy-bg">
+    <div class="container">
+      <div style="margin-bottom: 48px;">
+        <div class="section-label">
+          <i class="fa-solid fa-share-nodes"></i> Data Sharing
+        </div>
+        <h2 class="section-title">Who We Share Your Data With</h2>
+        <p class="section-subtitle">
+          We do not sell your personal data. We share information only in the limited circumstances described below.
+        </p>
+      </div>
+
+      <div class="policy-grid">
+
+        <div class="policy-card">
+          <div class="policy-card-icon teal">
+            <i class="fa-solid fa-server"></i>
+          </div>
+          <h3>Service Providers</h3>
+          <p>
+            We work with trusted third-party providers for cloud hosting, analytics, and crash reporting.
+            These partners process data only on our behalf and under strict confidentiality agreements.
+            They are not permitted to use your data for their own purposes.
+          </p>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-card-icon orange">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <h3>Legal Obligations</h3>
+          <p>
+            We may disclose your information when required to do so by applicable law, court order,
+            or governmental authority. We will notify you where legally permissible before making
+            such a disclosure.
+          </p>
+        </div>
+
+        <div class="policy-card">
+          <div class="policy-card-icon green">
+            <i class="fa-solid fa-handshake"></i>
+          </div>
+          <h3>Business Transfers</h3>
+          <p>
+            In the event of a merger, acquisition, or sale of assets, your data may be transferred
+            to the successor entity. We will provide notice before your data is subject to a
+            different privacy policy.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY & RETENTION -->
+  <section class="detail-section">
+    <div class="container">
+      <div style="margin-bottom: 48px;">
+        <div class="section-label">
+          <i class="fa-solid fa-lock"></i> Security &amp; Retention
+        </div>
+        <h2 class="section-title">Keeping Your Data Safe</h2>
+        <p class="section-subtitle">
+          We implement industry-standard technical and organisational measures to protect your information.
+        </p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-key"></i> Encryption</h3>
+        <p>All data transmitted between the Guestly app and our servers is encrypted using TLS (Transport Layer Security). Sensitive data at rest is encrypted using AES-256 encryption.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-clock"></i> Data Retention</h3>
+        <p>We retain your personal data for as long as your account is active or as needed to provide services. If you delete your account, we will delete or anonymise your personal data within 30 days, unless we are required to retain it for legal obligations.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-child"></i> Children's Privacy</h3>
+        <p>Guestly is not directed at children under the age of 13. We do not knowingly collect personal information from children. If we become aware that a child has provided us with personal data, we will take steps to delete it promptly. If you believe a child has submitted information to us, please contact us at jipinm@gmail.com.</p>
+      </div>
+
+      <div class="detail-block">
+        <h3><i class="fa-solid fa-globe"></i> International Transfers</h3>
+        <p>Your data may be processed in countries other than the one in which you reside. When we transfer data internationally, we ensure appropriate safeguards are in place in accordance with applicable data protection laws.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- YOUR RIGHTS -->
+  <section class="rights-section">
+    <div class="container">
+      <div class="rights-card">
+        <div class="rights-card-header">
+          <div class="section-label">
+            <i class="fa-solid fa-user-shield"></i> Your Rights
+          </div>
+          <h2>Control Over Your Data</h2>
+          <p>You have meaningful rights over the personal information we hold about you. Contact us at any time to exercise them.</p>
+        </div>
+
+        <div class="rights-grid">
+
+          <div class="right-item">
+            <div class="right-item-icon purple"><i class="fa-solid fa-eye"></i></div>
+            <div class="right-item-body">
+              <h4>Access</h4>
+              <p>Request a copy of the personal data we hold about you.</p>
+            </div>
+          </div>
+
+          <div class="right-item">
+            <div class="right-item-icon blue"><i class="fa-solid fa-pen-to-square"></i></div>
+            <div class="right-item-body">
+              <h4>Correction</h4>
+              <p>Ask us to correct inaccurate or incomplete data.</p>
+            </div>
+          </div>
+
+          <div class="right-item">
+            <div class="right-item-icon pink"><i class="fa-solid fa-trash-can"></i></div>
+            <div class="right-item-body">
+              <h4>Deletion</h4>
+              <p>Request the deletion of your personal data (right to erasure).</p>
+            </div>
+          </div>
+
+          <div class="right-item">
+            <div class="right-item-icon green"><i class="fa-solid fa-download"></i></div>
+            <div class="right-item-body">
+              <h4>Portability</h4>
+              <p>Receive your data in a structured, machine-readable format.</p>
+            </div>
+          </div>
+
+          <div class="right-item">
+            <div class="right-item-icon orange"><i class="fa-solid fa-ban"></i></div>
+            <div class="right-item-body">
+              <h4>Objection</h4>
+              <p>Object to processing of your data in certain circumstances.</p>
+            </div>
+          </div>
+
+          <div class="right-item">
+            <div class="right-item-icon teal"><i class="fa-solid fa-pause"></i></div>
+            <div class="right-item-body">
+              <h4>Restriction</h4>
+              <p>Request that we restrict how we process your data.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT CTA -->
+  <section class="contact-cta">
+    <div class="container">
+      <div class="cta-card">
+        <h2>Questions About This Policy?</h2>
+        <p>
+          If you have any questions, concerns, or requests regarding this Privacy Policy
+          or your personal data, our team is happy to help.
+        </p>
+        <div class="cta-actions">
+          <a href="mailto:jipinm@gmail.com" class="btn btn-white">
+            <i class="fa-solid fa-envelope"></i> Email Us
+          </a>
+          <a href="https://wa.me/918129836080" target="_blank" rel="noopener noreferrer" class="btn btn-ghost-light">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <a href="index.html" class="footer-logo">
+        <div class="logo-icon"><i class="fa-solid fa-calendar-check"></i></div>
+        <span>Guestly</span>
+      </a>
+
+      <div class="footer-links">
+        <a href="index.html#about">About</a>
+        <a href="index.html#support">Support</a>
+        <a href="index.html#contact">Contact</a>
+        <a href="privacy-policy.html">Privacy Policy</a>
+      </div>
+
+      <div class="footer-divider"></div>
+
+      <div class="footer-bottom">
+        <span>Developed by <strong style="color:#a78bfa;">Jipin Kumar M</strong></span>
+        <span>&middot;</span>
+        <span>&copy; <span id="year"></span> Guestly. All rights reserved.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+
+</body>
+</html>
