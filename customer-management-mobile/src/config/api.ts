@@ -13,7 +13,7 @@ const getApiBaseUrl = (): string => {
   }
   
   // Fallback to default production URL
-  return 'https://gift-track.myprojectdemo.live';
+  return 'https://gift-track.jipinworks.xyz';
 };
 
 // API Base URL Configuration

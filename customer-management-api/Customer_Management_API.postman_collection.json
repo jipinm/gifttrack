@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "customer-mgmt-api-v3",
 		"name": "Customer Management API",
-		"description": "Complete API collection for Customer Management System (Gifts Track) with JWT authentication.\n\nProduction: https://gift-track.myprojectdemo.live\nLocal: http://192.168.1.2/gifttrack/customer-management-api\n\n## Quick Start\n1. Run **Login - Super Admin** to auto-set the token\n2. All subsequent requests use the token automatically\n3. IDs are auto-captured from list/create responses\n\n## Roles\n- **superadmin**: Full access to all resources\n- **admin**: Manages own customers, gifts; can view events",
+		"description": "Complete API collection for Customer Management System (Gifts Track) with JWT authentication.\n\nProduction: https://gift-track.jipinworks.xyz\nLocal: http://192.168.1.2/gifttrack/customer-management-api\n\n## Quick Start\n1. Run **Login - Super Admin** to auto-set the token\n2. All subsequent requests use the token automatically\n3. IDs are auto-captured from list/create responses\n\n## Roles\n- **superadmin**: Full access to all resources\n- **admin**: Manages own customers, gifts; can view events",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"auth": {

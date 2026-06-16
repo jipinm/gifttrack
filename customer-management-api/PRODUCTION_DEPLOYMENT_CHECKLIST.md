@@ -14,7 +14,7 @@
 ## Pre-Deployment Checklist
 
 ### 1. Files to Upload to Production Server
-Upload these files from your local environment to the production server at `gift-track.myprojectdemo.live`:
+Upload these files from your local environment to the production server at `gift-track.jipinworks.xyz`:
 
 #### Configuration Files
 - [ ] **Copy `.env.production` to `.env`** (contains production DB credentials)
@@ -46,8 +46,8 @@ The following migrations need to be run on the production database `myprojec_db_
 - [ ] Verify `mod_rewrite` is enabled
 - [ ] Verify `mod_headers` is enabled
 - [ ] Verify `.htaccess` files are processed (`AllowOverride All`)
-- [ ] Test URL rewriting: `https://gift-track.myprojectdemo.live/test_url_rewriting`
-- [ ] Test health endpoint: `https://gift-track.myprojectdemo.live/api/health`
+- [ ] Test URL rewriting: `https://gift-track.jipinworks.xyz/test_url_rewriting`
+- [ ] Test health endpoint: `https://gift-track.jipinworks.xyz/api/health`
 
 ### 4. Environment Variables Verification
 Verify `.env` on production server has these settings:
@@ -100,7 +100,7 @@ The production APK build is in progress:
 - **Build ID**: `296f56e2-b546-448b-8989-30a3ea4862cf`
 - **Build Link**: https://expo.dev/accounts/jipinm/projects/customer-management-mobile/builds/296f56e2-b546-448b-8989-30a3ea4862cf
 - **Version Code**: 10
-- **API URL**: `https://gift-track.myprojectdemo.live` (configured in .env)
+- **API URL**: `https://gift-track.jipinworks.xyz` (configured in .env)
 
 Once the build completes:
 - [ ] Download APK from EAS dashboard
@@ -118,7 +118,7 @@ Once the build completes:
 ### Step 1: Backup Production
 ```bash
 # SSH into production server
-ssh your-user@gift-track.myprojectdemo.live
+ssh your-user@gift-track.jipinworks.xyz
 
 # Backup current API code
 cd /path/to/web/root
@@ -134,7 +134,7 @@ Use FTP/SFTP to upload the updated API files:
 # Using rsync (recommended)
 rsync -avz --exclude 'node_modules' --exclude '.git' \
   C:/xampp/htdocs/gifttrack/customer-management-api/ \
-  your-user@gift-track.myprojectdemo.live:/path/to/web/root/
+  your-user@gift-track.jipinworks.xyz:/path/to/web/root/
 ```
 
 Or use your preferred FTP client (FileZilla, WinSCP, etc.)
@@ -166,7 +166,7 @@ source database/migrations/014_scope_change_events_restructure.sql;
 ```
 
 ### Step 5: Verify Deployment
-1. Test health endpoint: `curl https://gift-track.myprojectdemo.live/api/health`
+1. Test health endpoint: `curl https://gift-track.jipinworks.xyz/api/health`
 2. Test auth login with your credentials
 3. Test new endpoints listed above
 4. Monitor logs for any errors

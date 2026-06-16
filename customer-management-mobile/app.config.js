@@ -32,7 +32,7 @@ export default {
       favicon: './assets/favicon.png',
     },
     extra: {
-      apiBaseUrl: process.env.API_BASE_URL || 'https://gift-track.myprojectdemo.live',
+      apiBaseUrl: process.env.API_BASE_URL || 'https://gift-track.jipinworks.xyz',
       eas: {
         projectId: '220af540-2d7a-453d-a810-debc9e418181',
       },
